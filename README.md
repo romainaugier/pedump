@@ -14,8 +14,13 @@ Arguments:
   <FILE_PATH>
 
 Options:
+
       --dos-header       Dumps the legacy MS-DOS compatible header
+
       --nt-header        Dumps the NT Header (most recent)
+
       --optional-header  Dumps the Optional (either 32/64) header
+
   -h, --help             Print help
+
   -V, --version          Print version
