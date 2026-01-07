@@ -41,6 +41,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    if args.import {
+        if pe.import_directory_table.is_none() {
+            dump_label("Import data", 0);
+            dump_label("No Import Data found in PE", args.padding_size);
+        }
+    }
+
+    if args.import_directory_table {
+        if let Some(idt) = pe.import_directory_table {
+            idt.dump(0, args.padding_size);
+        } else {
+           dump_label("Import Directory Table", 0);
+           dump_label("No Import Directory Table found in PE", args.padding_size);
+        }
+    }
+
     if args.debug {
         if let Some(dd) = pe.debug_directory {
             dd.dump(0, args.padding_size);

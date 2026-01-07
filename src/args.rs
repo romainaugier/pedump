@@ -33,6 +33,14 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub disasm: bool,
 
+    /// Dump all the data related to imports, if any
+    #[arg(long, default_value_t = false)]
+    pub import: bool,
+
+    /// Dump the Import Directory Table, if any
+    #[arg(long, default_value_t = false)]
+    pub import_directory_table: bool,
+
     /// Dump the debug information from the Debug Directory, if any
     #[arg(long, default_value_t = false)]
     pub debug: bool,
