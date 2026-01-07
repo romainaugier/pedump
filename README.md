@@ -24,11 +24,15 @@ Options:
       --sections
           Dumps the Sections
       --sections-filter <SECTIONS_FILTER>
-          Regulax expresion to filter the Sections to display [default: ".*"]
+          Regulax expresion to filter the Sections to display [default: .*]
       --sections-data
           Dumps the Sections data along with the headers
       --disasm
-          Disassemble the code found in the sections
+          Disassemble the code found in the Sections containing code
+      --debug
+          Dump the debug information, if any
+      --exception
+          Dump the exception information, if any
       --padding-size <PADDING_SIZE>
           Padding size to apply when dumping information for better readability [default: 4]
   -h, --help

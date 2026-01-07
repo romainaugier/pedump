@@ -68,6 +68,7 @@ impl DOSHeader {
         return Ok(header);
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         let label_pad = pad * pad_sz;
 
@@ -76,90 +77,25 @@ impl DOSHeader {
         let field_pad = (pad + 1) * pad_sz;
         let field_align = 12;
 
-        dump_field(
-            "e_magic",
-            format!("{:#x}", self.e_magic),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_cblp",
-            format!("{:#x}", self.e_cblp),
-            field_pad,
-            field_align,
-        );
+        dump_field("e_magic", format!("{:#x}", self.e_magic), field_pad, field_align);
+        dump_field("e_cblp", format!("{:#x}", self.e_cblp), field_pad, field_align);
         dump_field("e_cp", format!("{:#x}", self.e_cp), field_pad, field_align);
-        dump_field(
-            "e_crlc",
-            format!("{:#x}", self.e_crlc),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_cparhdr",
-            format!("{:#x}", self.e_cparhdr),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_minalloc",
-            format!("{:#x}", self.e_minalloc),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_maxalloc",
-            format!("{:#x}", self.e_maxalloc),
-            field_pad,
-            field_align,
-        );
+        dump_field("e_crlc", format!("{:#x}", self.e_crlc), field_pad, field_align);
+        dump_field("e_cparhdr", format!("{:#x}", self.e_cparhdr), field_pad, field_align);
+        dump_field("e_minalloc", format!("{:#x}", self.e_minalloc), field_pad, field_align);
+        dump_field("e_maxalloc", format!("{:#x}", self.e_maxalloc), field_pad, field_align);
         dump_field("e_ss", format!("{:#x}", self.e_ss), field_pad, field_align);
         dump_field("e_sp", format!("{:#x}", self.e_sp), field_pad, field_align);
-        dump_field(
-            "e_csum",
-            format!("{:#x}", self.e_csum),
-            field_pad,
-            field_align,
-        );
+        dump_field("e_csum", format!("{:#x}", self.e_csum), field_pad, field_align);
         dump_field("e_ip", format!("{:#x}", self.e_ip), field_pad, field_align);
         dump_field("e_cs", format!("{:#x}", self.e_cs), field_pad, field_align);
-        dump_field(
-            "e_lfarlc",
-            format!("{:#x}", self.e_lfarlc),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_ovno",
-            format!("{:#x}", self.e_ovno),
-            field_pad,
-            field_align,
-        );
+        dump_field("e_lfarlc", format!("{:#x}", self.e_lfarlc), field_pad, field_align);
+        dump_field("e_ovno", format!("{:#x}", self.e_ovno), field_pad, field_align);
         dump_field("e_res", format!("{:?}", self.e_res), field_pad, field_align);
-        dump_field(
-            "e_oemid",
-            format!("{:#x}", self.e_oemid),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_oeminfo",
-            format!("{:#x}", self.e_oeminfo),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_res2",
-            format!("{:?}", self.e_res2),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "e_lfanew",
-            format!("{:#x}", self.e_lfanew),
-            field_pad,
-            field_align,
-        );
+        dump_field("e_oemid", format!("{:#x}", self.e_oemid), field_pad, field_align);
+        dump_field("e_oeminfo", format!("{:#x}", self.e_oeminfo), field_pad, field_align);
+        dump_field("e_res2", format!("{:?}", self.e_res2), field_pad, field_align);
+        dump_field("e_lfanew", format!("{:#x}", self.e_lfanew), field_pad, field_align);
 
         println!("");
     }
@@ -316,6 +252,7 @@ impl COFFHeader {
         return flags.join(" | ");
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         let label_pad = pad * pad_sz;
 
@@ -324,60 +261,13 @@ impl COFFHeader {
         let field_pad = (pad + 1) * pad_sz;
         let field_align = 22;
 
-        dump_field(
-            "Machine",
-            format!(
-                "{:#x} ({:#?})",
-                self.machine,
-                MachineType::from(self.machine)
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfSections",
-            format!("{:#x}", self.number_of_sections),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "TimeDateStamp",
-            format!(
-                "{:#x} ({})",
-                self.time_date_stamp,
-                dump_u32_as_ctime(self.time_date_stamp)
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "PointerToSymbolTable",
-            format!("{:#x}", self.pointer_to_symbol_table),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfSymbols",
-            format!("{:#x}", self.number_of_symbols),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfOptionalHeader",
-            format!("{:#x}", self.size_of_optional_header),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Characteristics",
-            format!(
-                "{:#x} ({})",
-                self.characteristics,
-                self.characteristics_as_string()
-            ),
-            field_pad,
-            field_align,
-        );
+        dump_field("Machine", format!("{:#x} ({:#?})", self.machine, MachineType::from(self.machine)), field_pad, field_align);
+        dump_field("NumberOfSections", format!("{:#x}", self.number_of_sections), field_pad, field_align);
+        dump_field("TimeDateStamp", format!("{:#x} ({})", self.time_date_stamp, dump_u32_as_ctime(self.time_date_stamp)), field_pad, field_align);
+        dump_field("PointerToSymbolTable", format!("{:#x}", self.pointer_to_symbol_table), field_pad, field_align);
+        dump_field("NumberOfSymbols", format!("{:#x}", self.number_of_symbols), field_pad, field_align);
+        dump_field("SizeOfOptionalHeader", format!("{:#x}", self.size_of_optional_header), field_pad, field_align);
+        dump_field("Characteristics", format!("{:#x} ({})", self.characteristics, self.characteristics_as_string()), field_pad, field_align);
 
         println!("");
     }
@@ -546,68 +436,21 @@ impl DebugDirectory {
         return Ok(dd);
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         dump_label("Debug Directory", pad * pad_sz);
 
         let fields_pad = (pad + 1) * pad_sz;
         let fields_align = 17;
 
-        dump_field(
-            "Characteristics",
-            format!("{:#x}", self.characteristics),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "TimeDateStamp",
-            format!(
-                "{:#x} ({})",
-                self.time_date_stamp,
-                dump_u32_as_ctime(self.time_date_stamp)
-            ),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "MajorVersion",
-            format!("{:#x}", self.major_version),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "MinorVersion",
-            format!("{:#x}", self.minor_version),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "DebugType",
-            format!(
-                "{:#x} ({})",
-                self.debug_type,
-                DebugType::from(self.debug_type).as_static_str()
-            ),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "SizeOfData",
-            format!("{:#x} ({} bytes)", self.size_of_data, self.size_of_data),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "AddressOfRawData",
-            format!("{:#x}", self.address_of_raw_data),
-            fields_pad,
-            fields_align,
-        );
-        dump_field(
-            "PointerToRawData",
-            format!("{:#x}", self.pointer_to_raw_data),
-            fields_pad,
-            fields_align,
-        );
+        dump_field("Characteristics", format!("{:#x}", self.characteristics), fields_pad, fields_align);
+        dump_field("TimeDateStamp", format!("{:#x} ({})", self.time_date_stamp, dump_u32_as_ctime(self.time_date_stamp)), fields_pad, fields_align);
+        dump_field("MajorVersion", format!("{:#x}", self.major_version), fields_pad, fields_align);
+        dump_field("MinorVersion", format!("{:#x}", self.minor_version), fields_pad, fields_align);
+        dump_field("DebugType", format!("{:#x} ({})",self.debug_type,DebugType::from(self.debug_type).as_static_str()), fields_pad, fields_align);
+        dump_field("SizeOfData", format!("{:#x} ({} bytes)", self.size_of_data, self.size_of_data), fields_pad, fields_align);
+        dump_field("AddressOfRawData", format!("{:#x}", self.address_of_raw_data), fields_pad, fields_align);
+        dump_field("PointerToRawData", format!("{:#x}", self.pointer_to_raw_data), fields_pad, fields_align);
 
         println!("");
     }
@@ -629,6 +472,7 @@ pub struct Mips32ExcFunctionEntry {
 }
 
 impl Mips32ExcFunctionEntry {
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         dump_label("Function Entry", pad * pad_sz);
 
@@ -664,6 +508,7 @@ impl X64ExcFunctionEntry {
         return Ok(entry);
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         dump_label("Function Entry", pad * pad_sz);
 
@@ -687,6 +532,7 @@ pub struct OtherExcFunctionEntry {
 }
 
 impl OtherExcFunctionEntry {
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         dump_label("Function Entry", pad * pad_sz);
 
@@ -770,11 +616,16 @@ impl ExceptionTable {
     }
 
     pub fn dump(&self, pad: usize, pad_sz: usize) {
-        dump_label(format!("Exception Table ({} entries)", self.entries.len()).as_str(), pad * pad_sz);
+        dump_label(
+            format!("Exception Table ({} entries)", self.entries.len()).as_str(),
+            pad * pad_sz,
+        );
 
         for entry in self.entries.iter() {
             entry.dump(pad + 1, pad_sz);
         }
+
+        println!("");
     }
 }
 
@@ -990,355 +841,72 @@ impl OptionalHeader32 {
         return Ok(header);
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         let label_pad = pad * pad_sz;
 
-        dump_field("Optional Header (32-bits)", "", label_pad, 0);
+        dump_label("Optional Header (32-bits)", label_pad);
 
         let field_name_pad = (pad + 1) * pad_sz;
         let field_pad = (pad + 2) * pad_sz;
         let field_align = 30;
 
-        dump_field("Standard Fields", "", field_name_pad, 0);
+        dump_label("Standard Fields", field_name_pad);
 
-        dump_field(
-            "Magic",
-            format!("{:#x}", self.magic),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorLinkerVersion",
-            format!("{:#x}", self.major_linker_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorLinkerVersion",
-            format!("{:#x}", self.minor_linker_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfCode",
-            format!("{:#x}", self.size_of_code),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfInitializedData",
-            format!("{:#x}", self.size_of_initialized_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfUninitializedData",
-            format!("{:#x}", self.size_of_uninitialized_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "AddressOfEntryPoint",
-            format!("{:#x}", self.address_of_entry_point),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BaseOfCode",
-            format!("{:#x}", self.base_of_code),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BaseOfData",
-            format!("{:#x}", self.base_of_data),
-            field_pad,
-            field_align,
-        );
+        dump_field("Magic", format!("{:#x}", self.magic), field_pad, field_align);
+        dump_field("MajorLinkerVersion", format!("{:#x}", self.major_linker_version), field_pad, field_align);
+        dump_field("MinorLinkerVersion", format!("{:#x}", self.minor_linker_version), field_pad, field_align);
+        dump_field("SizeOfCode", format!("{:#x}", self.size_of_code), field_pad, field_align);
+        dump_field("SizeOfInitializedData", format!("{:#x}", self.size_of_initialized_data), field_pad, field_align);
+        dump_field("SizeOfUninitializedData", format!("{:#x}", self.size_of_uninitialized_data), field_pad, field_align);
+        dump_field("AddressOfEntryPoint", format!("{:#x}", self.address_of_entry_point), field_pad, field_align);
+        dump_field("BaseOfCode", format!("{:#x}", self.base_of_code), field_pad, field_align);
+        dump_field("BaseOfData", format!("{:#x}", self.base_of_data), field_pad, field_align);
 
-        dump_field("Windows Specific Fields", "", field_name_pad, 0);
+        dump_label("Windows Specific Fields", field_name_pad);
 
-        dump_field(
-            "ImageBase",
-            format!("{:#x}", self.image_base),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SectionAlignment",
-            format!("{:#x}", self.section_alignment),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "FileAlignement",
-            format!("{:#x}", self.file_alignement),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorOperatingSystemVersion",
-            format!("{:#x}", self.major_operating_system_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorOperatingSystemVersion",
-            format!("{:#x}", self.minor_operating_system_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorImageVersion",
-            format!("{:#x}", self.major_image_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorImageVersion",
-            format!("{:#x}", self.minor_image_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorSubsystemVersion",
-            format!("{:#x}", self.major_subsystem_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorSubsystemVersion",
-            format!("{:#x}", self.minor_subsystem_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Win32VersionValue",
-            format!("{:#x}", self.win32_version_value),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfImage",
-            format!("{:#x}", self.size_of_image),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeaders",
-            format!("{:#x}", self.size_of_headers),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Checksum",
-            format!("{:#x}", self.checksum),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Subsystem",
-            format!(
-                "{:#x} ({})",
-                self.subsystem,
-                Subsystem::from(self.subsystem).as_static_str()
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "DLLCharacteristics",
-            format!(
-                "{:#x} ({})",
-                self.dll_characteristics,
-                DLLCharacteristicsFlags::flags_as_string(self.dll_characteristics)
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfStackReserve",
-            format!("{:#x}", self.size_of_stack_reserve),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfStackCommit",
-            format!("{:#x}", self.size_of_stack_commit),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeapReserve",
-            format!("{:#x}", self.size_of_heap_reserve),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeapCommit",
-            format!("{:#x}", self.size_of_heap_commit),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "LoaderFlags",
-            format!("{:#x}", self.loader_flags),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfRvaAndSizes",
-            format!("{:#x}", self.number_of_rva_and_sizes),
-            field_pad,
-            field_align,
-        );
+        dump_field("ImageBase", format!("{:#x}", self.image_base), field_pad, field_align);
+        dump_field("SectionAlignment", format!("{:#x}", self.section_alignment), field_pad, field_align);
+        dump_field("FileAlignement", format!("{:#x}", self.file_alignement), field_pad, field_align);
+        dump_field("MajorOperatingSystemVersion", format!("{:#x}", self.major_operating_system_version), field_pad, field_align);
+        dump_field("MinorOperatingSystemVersion", format!("{:#x}", self.minor_operating_system_version), field_pad, field_align);
+        dump_field("MajorImageVersion", format!("{:#x}", self.major_image_version), field_pad, field_align);
+        dump_field("MinorImageVersion", format!("{:#x}", self.minor_image_version), field_pad, field_align);
+        dump_field("MajorSubsystemVersion", format!("{:#x}", self.major_subsystem_version), field_pad, field_align);
+        dump_field("MinorSubsystemVersion", format!("{:#x}", self.minor_subsystem_version), field_pad, field_align);
+        dump_field("Win32VersionValue", format!("{:#x}", self.win32_version_value), field_pad, field_align);
+        dump_field("SizeOfImage", format!("{:#x}", self.size_of_image), field_pad, field_align);
+        dump_field("SizeOfHeaders", format!("{:#x}", self.size_of_headers), field_pad, field_align);
+        dump_field("Checksum", format!("{:#x}", self.checksum), field_pad, field_align);
+        dump_field("Subsystem", format!("{:#x} ({})", self.subsystem, Subsystem::from(self.subsystem).as_static_str()), field_pad, field_align);
+        dump_field("DLLCharacteristics", format!("{:#x} ({})", self.dll_characteristics, DLLCharacteristicsFlags::flags_as_string(self.dll_characteristics)), field_pad, field_align);
+        dump_field("SizeOfStackReserve", format!("{:#x}", self.size_of_stack_reserve), field_pad, field_align);
+        dump_field("SizeOfStackCommit", format!("{:#x}", self.size_of_stack_commit), field_pad, field_align);
+        dump_field("SizeOfHeapReserve", format!("{:#x}", self.size_of_heap_reserve), field_pad, field_align);
+        dump_field("SizeOfHeapCommit", format!("{:#x}", self.size_of_heap_commit), field_pad, field_align);
+        dump_field("LoaderFlags", format!("{:#x}", self.loader_flags), field_pad, field_align);
+        dump_field("NumberOfRvaAndSizes", format!("{:#x}", self.number_of_rva_and_sizes), field_pad, field_align);
 
         dump_field("Data Directories", "", field_name_pad, 0);
 
-        dump_field(
-            "ExportTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.export_table.virtual_address, self.export_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ImportTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.import_table.virtual_address, self.import_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ResourceTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.resource_table.virtual_address, self.resource_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ExceptionTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.exception_table.virtual_address, self.exception_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "CertificateTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.certificate_table.virtual_address, self.certificate_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BaseRelocationTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.base_relocation_table.virtual_address, self.base_relocation_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Debug",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.debug.virtual_address, self.debug.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Architecture",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.architecture.virtual_address, self.architecture.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "GlobalPtr",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.global_ptr.virtual_address, self.global_ptr.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "TLSTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.tls_table.virtual_address, self.tls_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "LoadConfigTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.load_config_table.virtual_address, self.load_config_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BoundImport",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.bound_import.virtual_address, self.bound_import.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ImportAddressTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.import_address_table.virtual_address, self.import_address_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "DelayImportDescriptor",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.delay_import_descriptor.virtual_address, self.delay_import_descriptor.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "CLRRuntimeHeader",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.clr_runtime_header.virtual_address, self.clr_runtime_header.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Zero",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.zero.virtual_address, self.zero.size
-            ),
-            field_pad,
-            field_align,
-        );
+        dump_field("ExportTable", format!("address: {:#x} sz: {:#x}", self.export_table.virtual_address, self.export_table.size), field_pad, field_align);
+        dump_field("ImportTable", format!("address: {:#x} sz: {:#x}", self.import_table.virtual_address, self.import_table.size), field_pad, field_align);
+        dump_field("ResourceTable", format!("address: {:#x} sz: {:#x}", self.resource_table.virtual_address, self.resource_table.size), field_pad, field_align);
+        dump_field("ExceptionTable", format!("address: {:#x} sz: {:#x}", self.exception_table.virtual_address, self.exception_table.size), field_pad, field_align);
+        dump_field("CertificateTable", format!("address: {:#x} sz: {:#x}", self.certificate_table.virtual_address, self.certificate_table.size), field_pad, field_align);
+        dump_field("BaseRelocationTable", format!("address: {:#x} sz: {:#x}", self.base_relocation_table.virtual_address, self.base_relocation_table.size), field_pad, field_align);
+        dump_field("Debug", format!("address: {:#x} sz: {:#x}", self.debug.virtual_address, self.debug.size), field_pad, field_align);
+        dump_field("Architecture", format!("address: {:#x} sz: {:#x}", self.architecture.virtual_address, self.architecture.size), field_pad, field_align);
+        dump_field("GlobalPtr", format!("address: {:#x} sz: {:#x}", self.global_ptr.virtual_address, self.global_ptr.size), field_pad, field_align);
+        dump_field("TLSTable", format!("address: {:#x} sz: {:#x}", self.tls_table.virtual_address, self.tls_table.size), field_pad, field_align);
+        dump_field("LoadConfigTable", format!("address: {:#x} sz: {:#x}", self.load_config_table.virtual_address, self.load_config_table.size), field_pad, field_align);
+        dump_field("BoundImport", format!("address: {:#x} sz: {:#x}", self.bound_import.virtual_address, self.bound_import.size), field_pad, field_align);
+        dump_field("ImportAddressTable", format!("address: {:#x} sz: {:#x}", self.import_address_table.virtual_address, self.import_address_table.size), field_pad, field_align);
+        dump_field("DelayImportDescriptor", format!("address: {:#x} sz: {:#x}", self.delay_import_descriptor.virtual_address, self.delay_import_descriptor.size), field_pad, field_align);
+        dump_field("CLRRuntimeHeader", format!("address: {:#x} sz: {:#x}", self.clr_runtime_header.virtual_address, self.clr_runtime_header.size), field_pad, field_align);
+        dump_field("Zero", format!("address: {:#x} sz: {:#x}", self.zero.virtual_address, self.zero.size), field_pad, field_align);
+
+        println!("");
     }
 }
 
@@ -1454,349 +1022,71 @@ impl OptionalHeader64 {
         return Ok(header);
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         let label_pad = pad * pad_sz;
 
-        dump_field("Optional Header (64-bits)", "", label_pad, 0);
+        dump_label("Optional Header (64-bits)", label_pad);
 
         let field_name_pad = (pad + 1) * pad_sz;
         let field_pad = (pad + 2) * pad_sz;
         let field_align = 30;
 
-        dump_field("Standard Fields", "", field_name_pad, 0);
+        dump_label("Standard Fields", field_name_pad);
 
-        dump_field(
-            "Magic",
-            format!("{:#x}", self.magic),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorLinkerVersion",
-            format!("{:#x}", self.major_linker_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorLinkerVersion",
-            format!("{:#x}", self.minor_linker_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfCode",
-            format!("{:#x}", self.size_of_code),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfInitializedData",
-            format!("{:#x}", self.size_of_initialized_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfUninitializedData",
-            format!("{:#x}", self.size_of_uninitialized_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "AddressOfEntryPoint",
-            format!("{:#x}", self.address_of_entry_point),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BaseOfCode",
-            format!("{:#x}", self.base_of_code),
-            field_pad,
-            field_align,
-        );
+        dump_field("Magic", format!("{:#x}", self.magic), field_pad, field_align);
+        dump_field("MajorLinkerVersion", format!("{:#x}", self.major_linker_version), field_pad, field_align);
+        dump_field("MinorLinkerVersion", format!("{:#x}", self.minor_linker_version), field_pad, field_align);
+        dump_field("SizeOfCode", format!("{:#x}", self.size_of_code), field_pad, field_align);
+        dump_field("SizeOfInitializedData", format!("{:#x}", self.size_of_initialized_data), field_pad, field_align);
+        dump_field("SizeOfUninitializedData", format!("{:#x}", self.size_of_uninitialized_data), field_pad, field_align);
+        dump_field("AddressOfEntryPoint", format!("{:#x}", self.address_of_entry_point), field_pad, field_align);
+        dump_field("BaseOfCode", format!("{:#x}", self.base_of_code), field_pad, field_align);
 
-        dump_field("Windows Specific Fields", "", field_name_pad, 0);
+        dump_label("Windows Specific Fields", field_name_pad);
 
-        dump_field(
-            "ImageBase",
-            format!("{:#x}", self.image_base),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SectionAlignment",
-            format!("{:#x}", self.section_alignment),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "FileAlignement",
-            format!("{:#x}", self.file_alignement),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorOperatingSystemVersion",
-            format!("{:#x}", self.major_operating_system_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorOperatingSystemVersion",
-            format!("{:#x}", self.minor_operating_system_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorImageVersion",
-            format!("{:#x}", self.major_image_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorImageVersion",
-            format!("{:#x}", self.minor_image_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MajorSubsystemVersion",
-            format!("{:#x}", self.major_subsystem_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "MinorSubsystemVersion",
-            format!("{:#x}", self.minor_subsystem_version),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Win32VersionValue",
-            format!("{:#x}", self.win32_version_value),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfImage",
-            format!("{:#x}", self.size_of_image),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeaders",
-            format!("{:#x}", self.size_of_headers),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Checksum",
-            format!("{:#x}", self.checksum),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Subsystem",
-            format!(
-                "{:#x} ({})",
-                self.subsystem,
-                Subsystem::from(self.subsystem).as_static_str()
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "DLLCharacteristics",
-            format!(
-                "{:#x} ({})",
-                self.dll_characteristics,
-                DLLCharacteristicsFlags::flags_as_string(self.dll_characteristics)
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfStackReserve",
-            format!("{:#x}", self.size_of_stack_reserve),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfStackCommit",
-            format!("{:#x}", self.size_of_stack_commit),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeapReserve",
-            format!("{:#x}", self.size_of_heap_reserve),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfHeapCommit",
-            format!("{:#x}", self.size_of_heap_commit),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "LoaderFlags",
-            format!("{:#x}", self.loader_flags),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfRvaAndSizes",
-            format!("{:#x}", self.number_of_rva_and_sizes),
-            field_pad,
-            field_align,
-        );
+        dump_field("ImageBase", format!("{:#x}", self.image_base), field_pad, field_align);
+        dump_field("SectionAlignment", format!("{:#x}", self.section_alignment), field_pad, field_align);
+        dump_field("FileAlignement", format!("{:#x}", self.file_alignement), field_pad, field_align);
+        dump_field("MajorOperatingSystemVersion", format!("{:#x}", self.major_operating_system_version), field_pad, field_align);
+        dump_field("MinorOperatingSystemVersion", format!("{:#x}", self.minor_operating_system_version), field_pad, field_align);
+        dump_field("MajorImageVersion", format!("{:#x}", self.major_image_version), field_pad, field_align);
+        dump_field("MinorImageVersion", format!("{:#x}", self.minor_image_version), field_pad, field_align);
+        dump_field("MajorSubsystemVersion", format!("{:#x}", self.major_subsystem_version), field_pad, field_align);
+        dump_field("MinorSubsystemVersion", format!("{:#x}", self.minor_subsystem_version), field_pad, field_align);
+        dump_field("Win32VersionValue", format!("{:#x}", self.win32_version_value), field_pad, field_align);
+        dump_field("SizeOfImage", format!("{:#x}", self.size_of_image), field_pad, field_align);
+        dump_field("SizeOfHeaders", format!("{:#x}", self.size_of_headers), field_pad, field_align);
+        dump_field("Checksum", format!("{:#x}", self.checksum), field_pad, field_align);
+        dump_field("Subsystem", format!("{:#x} ({})", self.subsystem, Subsystem::from(self.subsystem).as_static_str()), field_pad, field_align);
+        dump_field("DLLCharacteristics", format!("{:#x} ({})", self.dll_characteristics, DLLCharacteristicsFlags::flags_as_string(self.dll_characteristics)), field_pad, field_align);
+        dump_field("SizeOfStackReserve", format!("{:#x}", self.size_of_stack_reserve), field_pad, field_align);
+        dump_field("SizeOfStackCommit", format!("{:#x}", self.size_of_stack_commit), field_pad, field_align);
+        dump_field("SizeOfHeapReserve", format!("{:#x}", self.size_of_heap_reserve), field_pad, field_align);
+        dump_field("SizeOfHeapCommit", format!("{:#x}", self.size_of_heap_commit), field_pad, field_align);
+        dump_field("LoaderFlags", format!("{:#x}", self.loader_flags), field_pad, field_align);
+        dump_field("NumberOfRvaAndSizes", format!("{:#x}", self.number_of_rva_and_sizes), field_pad, field_align);
 
         dump_field("Data Directories", "", field_name_pad, 0);
 
-        dump_field(
-            "ExportTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.export_table.virtual_address, self.export_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ImportTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.import_table.virtual_address, self.import_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ResourceTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.resource_table.virtual_address, self.resource_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ExceptionTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.exception_table.virtual_address, self.exception_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "CertificateTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.certificate_table.virtual_address, self.certificate_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BaseRelocationTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.base_relocation_table.virtual_address, self.base_relocation_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Debug",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.debug.virtual_address, self.debug.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Architecture",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.architecture.virtual_address, self.architecture.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "GlobalPtr",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.global_ptr.virtual_address, self.global_ptr.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "TLSTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.tls_table.virtual_address, self.tls_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "LoadConfigTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.load_config_table.virtual_address, self.load_config_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "BoundImport",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.bound_import.virtual_address, self.bound_import.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "ImportAddressTable",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.import_address_table.virtual_address, self.import_address_table.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "DelayImportDescriptor",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.delay_import_descriptor.virtual_address, self.delay_import_descriptor.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "CLRRuntimeHeader",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.clr_runtime_header.virtual_address, self.clr_runtime_header.size
-            ),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Zero",
-            format!(
-                "address: {:#x} sz: {:#x}",
-                self.zero.virtual_address, self.zero.size
-            ),
-            field_pad,
-            field_align,
-        );
+        dump_field("ExportTable", format!("address: {:#x} sz: {:#x}", self.export_table.virtual_address, self.export_table.size), field_pad, field_align);
+        dump_field("ImportTable", format!("address: {:#x} sz: {:#x}", self.import_table.virtual_address, self.import_table.size), field_pad, field_align);
+        dump_field("ResourceTable", format!("address: {:#x} sz: {:#x}", self.resource_table.virtual_address, self.resource_table.size), field_pad, field_align);
+        dump_field("ExceptionTable", format!("address: {:#x} sz: {:#x}", self.exception_table.virtual_address, self.exception_table.size), field_pad, field_align);
+        dump_field("CertificateTable", format!("address: {:#x} sz: {:#x}", self.certificate_table.virtual_address, self.certificate_table.size), field_pad, field_align);
+        dump_field("BaseRelocationTable", format!("address: {:#x} sz: {:#x}", self.base_relocation_table.virtual_address, self.base_relocation_table.size), field_pad, field_align);
+        dump_field("Debug", format!("address: {:#x} sz: {:#x}", self.debug.virtual_address, self.debug.size), field_pad, field_align);
+        dump_field("Architecture", format!("address: {:#x} sz: {:#x}", self.architecture.virtual_address, self.architecture.size), field_pad, field_align);
+        dump_field("GlobalPtr", format!("address: {:#x} sz: {:#x}", self.global_ptr.virtual_address, self.global_ptr.size), field_pad, field_align);
+        dump_field("TLSTable", format!("address: {:#x} sz: {:#x}", self.tls_table.virtual_address, self.tls_table.size), field_pad, field_align);
+        dump_field("LoadConfigTable", format!("address: {:#x} sz: {:#x}", self.load_config_table.virtual_address, self.load_config_table.size), field_pad, field_align);
+        dump_field("BoundImport", format!("address: {:#x} sz: {:#x}", self.bound_import.virtual_address, self.bound_import.size), field_pad, field_align);
+        dump_field("ImportAddressTable", format!("address: {:#x} sz: {:#x}", self.import_address_table.virtual_address, self.import_address_table.size), field_pad, field_align);
+        dump_field("DelayImportDescriptor", format!("address: {:#x} sz: {:#x}", self.delay_import_descriptor.virtual_address, self.delay_import_descriptor.size), field_pad, field_align);
+        dump_field("CLRRuntimeHeader", format!("address: {:#x} sz: {:#x}", self.clr_runtime_header.virtual_address, self.clr_runtime_header.size), field_pad, field_align);
+        dump_field("Zero", format!("address: {:#x} sz: {:#x}", self.zero.virtual_address, self.zero.size), field_pad, field_align);
+
+        println!("");
     }
 }
 
@@ -2059,6 +1349,7 @@ impl SectionHeader {
         }
     }
 
+    #[rustfmt::skip]
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         let label_pad = pad * pad_sz;
 
@@ -2067,64 +1358,15 @@ impl SectionHeader {
         let field_pad = (pad + 1) * pad_sz;
         let field_align = 30;
 
-        dump_field(
-            "VirtualSize",
-            format!("{:#x}", self.virtual_size),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "VirtualAddress",
-            format!("{:#x}", self.virtual_address),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "SizeOfRawData",
-            format!("{:#x}", self.size_of_raw_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "PtrToRawData",
-            format!("{:#x}", self.ptr_to_raw_data),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "PointerToRelocations",
-            format!("{:#x}", self.pointer_to_relocations),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "PointerToLineNumbers",
-            format!("{:#x}", self.pointer_to_line_numbers),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfRelocations",
-            format!("{:#x}", self.number_of_relocations),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "NumberOfLineNumbers",
-            format!("{:#x}", self.number_of_line_numbers),
-            field_pad,
-            field_align,
-        );
-        dump_field(
-            "Characteristics",
-            format!(
-                "{:#x} ({})",
-                self.characteristics,
-                SectionFlags::flags_as_string(self.characteristics)
-            ),
-            field_pad,
-            field_align,
-        );
+        dump_field("VirtualSize", format!("{:#x}", self.virtual_size), field_pad, field_align);
+        dump_field("VirtualAddress", format!("{:#x}", self.virtual_address), field_pad, field_align);
+        dump_field("SizeOfRawData", format!("{:#x}", self.size_of_raw_data), field_pad, field_align);
+        dump_field("PtrToRawData", format!("{:#x}", self.ptr_to_raw_data), field_pad, field_align);
+        dump_field("PointerToRelocations", format!("{:#x}", self.pointer_to_relocations), field_pad, field_align);
+        dump_field("PointerToLineNumbers", format!("{:#x}", self.pointer_to_line_numbers), field_pad, field_align);
+        dump_field("NumberOfRelocations", format!("{:#x}", self.number_of_relocations), field_pad, field_align);
+        dump_field("NumberOfLineNumbers", format!("{:#x}", self.number_of_line_numbers), field_pad, field_align);
+        dump_field("Characteristics", format!("{:#x} ({})", self.characteristics, SectionFlags::flags_as_string(self.characteristics)), field_pad, field_align);
     }
 }
 
@@ -2598,6 +1840,7 @@ pub fn parse_pe(file_path: &PathBuf) -> Result<PE, Box<dyn std::error::Error>> {
     // Data Directories
 
     // Debug Directory
+
     let debug_va = pe.get_optional_header().get_debug_idd().virtual_address;
 
     if debug_va > 0 {
@@ -2613,6 +1856,7 @@ pub fn parse_pe(file_path: &PathBuf) -> Result<PE, Box<dyn std::error::Error>> {
     }
 
     // Exception Table
+
     let exception_va = pe
         .get_optional_header()
         .get_exception_table_idd()

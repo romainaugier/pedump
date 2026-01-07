@@ -33,11 +33,11 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub disasm: bool,
 
-    /// Dump the debug information, if any
+    /// Dump the debug information from the Debug Directory, if any
     #[arg(long, default_value_t = false)]
     pub debug: bool,
 
-    /// Dump the exception information, if any
+    /// Dump the exception information from the Exception Table, if any
     #[arg(long, default_value_t = false)]
     pub exception: bool,
 
