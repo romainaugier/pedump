@@ -45,11 +45,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if pe.import_directory_table.is_none() {
             dump_label("Import data", 0);
             dump_label("No Import Data found in PE", args.padding_size);
+        } else {
+            pe.import_directory_table.as_ref().unwrap().dump(0, args.padding_size);
+
+            for ilt in pe.import_lookup_tables.as_ref().unwrap().iter() {
+                ilt.dump(0, args.padding_size);
+            }
+
+            println!("");
+
+            pe.hint_name_table.as_ref().unwrap().dump(0, args.padding_size);
         }
     }
 
     if args.import_directory_table {
-        if let Some(idt) = pe.import_directory_table {
+        if let Some(ref idt) = pe.import_directory_table {
             idt.dump(0, args.padding_size);
         } else {
            dump_label("Import Directory Table", 0);
@@ -57,8 +67,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    if args.hint_name_table {
+        if let Some(ref hnt) = pe.hint_name_table {
+            hnt.dump(0, args.padding_size);
+        } else {
+            dump_label("Hint/Name Table", 0);
+            dump_label("No Hint/Name Table found in PE", args.padding_size);
+        }
+    }
+
+    if args.dlls {
+        if let Some(ref hnt) = pe.hint_name_table {
+            hnt.dump_dlls(0, args.padding_size);
+        } else {
+            dump_label("DLLs", 0);
+            dump_label("No DLLs found in PE", args.padding_size);
+        }
+    }
+
     if args.debug {
-        if let Some(dd) = pe.debug_directory {
+        if let Some(ref dd) = pe.debug_directory {
             dd.dump(0, args.padding_size);
         } else {
             dump_label("Debug", 0);
@@ -67,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if args.exception {
-        if let Some(et) = pe.exception_table {
+        if let Some(ref et) = pe.exception_table {
             et.dump(0, args.padding_size);
         } else {
             dump_label("Exception", 0);

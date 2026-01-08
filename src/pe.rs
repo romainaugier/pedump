@@ -1351,6 +1351,10 @@ impl ImportLookupTable {
         return Ok(ilt);
     }
 
+    pub fn len(&self) -> usize {
+        return self.entries.len();
+    }
+
     pub fn dump(&self, pad: usize, pad_sz: usize) {
         dump_label("Import Lookup Table", pad * pad_sz);
 
@@ -1392,7 +1396,7 @@ impl HintNameEntry {
             name_buffer.push(c);
         }
 
-        if (name_buffer.len() % 2) != 0 {
+        if (cursor.position() % 2) != 0 {
             cursor.read_u8()?;
             entry.pad = true;
         } else {
@@ -1406,18 +1410,60 @@ impl HintNameEntry {
 }
 
 #[derive(Default, Clone, Debug)]
-#[repr(C)]
+pub struct HintNameData {
+    pub dll_name: String,
+    pub entries: Vec<HintNameEntry>,
+}
+
+impl HintNameData {
+    pub fn parse_dll_name(
+        cursor: &mut io::Cursor<&Vec<u8>>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut name_buffer = Vec::new();
+
+        loop {
+            let c = cursor.read_u8()?;
+
+            if c == 0x0 {
+                break;
+            }
+
+            name_buffer.push(c);
+        }
+
+        return Ok(String::from_utf8(name_buffer).expect("Invalid name found in Hint/Name Table for DLL"));
+    }
+}
+
+#[derive(Default, Clone, Debug)]
 pub struct HintNameTable {
-    entries: Vec<HintNameEntry>,
+    pub entries: Vec<HintNameData>,
 }
 
 impl HintNameTable {
-    pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
-    ) -> Result<HintNameTable, Box<dyn std::error::Error>> {
-        let mut hnt = HintNameTable::default();
+    pub fn dump(&self, pad: usize, pad_sz: usize) {
+        dump_label("Hint/Name Table", pad * pad_sz);
 
-        return Ok(hnt);
+        let dll_names_pad = (pad + 1) * pad_sz;
+        let func_names_pad = (pad + 2) * pad_sz;
+
+        for entry in self.entries.iter() {
+            dump_label(&entry.dll_name, dll_names_pad);
+
+            for hne in entry.entries.iter() {
+                dump_label(&hne.name, func_names_pad);
+            }
+        }
+    }
+
+    pub fn dump_dlls(&self, pad: usize, pad_sz: usize) {
+        dump_label("DLLS", pad * pad_sz);
+
+        let dll_names_pad = (pad + 1) * pad_sz;
+
+        for entry in self.entries.iter() {
+            dump_label(&entry.dll_name, dll_names_pad);
+        }
     }
 }
 
@@ -1879,18 +1925,47 @@ impl PE {
         let itd_file_offset = self.convert_rva_to_file_offset(import_table_idd.virtual_address);
 
         if let Some(file_offset) = itd_file_offset {
-            cursor.set_position(file_offset as u64);
+            cursor.set_position(file_offset);
 
             let import_directory_table = ImportDirectoryTable::from_parser(cursor)?;
+            let mut hint_name_table = HintNameTable::default();
 
             let mut import_lookup_tables = Vec::new();
 
-            for _ in 0..import_directory_table.len() {
-                import_lookup_tables.push(ImportLookupTable::from_parser(cursor, self.is_32_bits())?);
+            for idt in import_directory_table.entries.iter() {
+                let ilt_offset = self.convert_rva_to_file_offset(idt.import_lookup_table_rva).expect("Cannot find file offset for Import Lookup Table");
+                cursor.set_position(ilt_offset);
+
+                let ilt = ImportLookupTable::from_parser(cursor, self.is_32_bits())?;
+
+                let mut hnd = HintNameData::default();
+
+                let dll_name_offset = self.convert_rva_to_file_offset(idt.name_rva).expect("Cannot find file offset_for_dll_name");
+
+                cursor.set_position(dll_name_offset);
+
+                hnd.dll_name = HintNameData::parse_dll_name(cursor)?;
+
+                for ilt_entry in ilt.entries.iter() {
+                    if ilt_entry.by_ordinal {
+                        continue
+                    }
+
+                    let ilt_offset = self.convert_rva_to_file_offset(ilt_entry.hint_name_table_rva).expect("Cannot find file offset for Hint/Name table entry");
+
+                    cursor.set_position(ilt_offset);
+
+                    hnd.entries.push(HintNameEntry::from_parser(cursor)?);
+                }
+
+                hint_name_table.entries.push(hnd);
+
+                import_lookup_tables.push(ilt);
             }
 
             self.import_directory_table = Some(import_directory_table);
             self.import_lookup_tables = Some(import_lookup_tables);
+            self.hint_name_table = Some(hint_name_table);
         }
 
         return Ok(());

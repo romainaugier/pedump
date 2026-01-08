@@ -41,6 +41,14 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub import_directory_table: bool,
 
+    /// Dump the Hint/Name Table, if any
+    #[arg(long, default_value_t = false)]
+    pub hint_name_table: bool,
+
+    /// Dump the DLLs names imported, if any
+    #[arg(long, default_value_t = false)]
+    pub dlls: bool,
+
     /// Dump the debug information from the Debug Directory, if any
     #[arg(long, default_value_t = false)]
     pub debug: bool,
