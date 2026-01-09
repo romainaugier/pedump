@@ -140,6 +140,10 @@ impl Dump {
             _ => {},
         }
 
+        if self.children.len() > 0 {
+            println!("");
+        }
+
         for child in self.children.iter() {
             child.print(indent_level + 1, indent_size);
         }
@@ -167,7 +171,7 @@ pub fn dump_pe(pe: &PE, args: &Args) {
 
         for (_, section) in pe.sections.iter() {
             if sections_filter_regex.is_match(section.header.name.as_str()) {
-                section.dump(args.disasm).print(0, args.padding_size);
+                section.dump(pe, args.disasm).print(0, args.padding_size);
             }
         }
     }

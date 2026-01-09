@@ -15,6 +15,7 @@ pub mod tui;
 pub mod format;
 pub mod exec;
 pub mod reader;
+pub mod demangle;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();

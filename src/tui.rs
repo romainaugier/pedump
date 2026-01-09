@@ -5,6 +5,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    layout::{Size},
 };
 
 use crossterm::{
@@ -16,12 +17,11 @@ use crossterm::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::{error::Error, io, path::PathBuf};
+use std::{error::Error, io, path::PathBuf, cmp::min};
 
 use crate::dump::{Dump, DumpRawData};
 use crate::exec::Exec;
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct Theme {
     bg: Color,
@@ -71,7 +71,7 @@ struct KeyBindings {
     right: char,
     page_down: char,
     page_up: char,
-    home: char,
+    start: char,
     end: char,
 }
 
@@ -87,7 +87,7 @@ impl Default for KeyBindings {
             right: 'l',
             page_down: 'd',
             page_up: 'u',
-            home: 'g',
+            start: 'g',
             end: 'G',
         }
     }
@@ -155,6 +155,15 @@ enum ViewType {
     PEResourceTable,
     PEExceptionTable,
     PEDebugDirectory,
+}
+
+impl ViewType {
+    fn should_scroll(&self) -> bool {
+        match self {
+            ViewType::Welcome => false,
+            _ => true,
+        }
+    }
 }
 
 // Active pane
@@ -279,11 +288,10 @@ impl App {
                     self.content_page_down();
                 } else if c == bindings.page_up {
                     self.content_page_up();
-                } else if c == 'g' {
-                    self.content_scroll = 0;
-                    self.hex_offset = 0;
-                } else if c == 'G' {
-                    self.content_scroll = usize::MAX;
+                } else if c == bindings.start {
+                    self.content_start();
+                } else if c == bindings.end {
+                    self.content_end();
                 }
             }
             KeyCode::Enter if self.active_pane == ActivePane::Explorer => {
@@ -328,30 +336,65 @@ impl App {
     }
 
     fn content_scroll_down(&mut self) {
+        if !self.current_view.should_scroll() {
+            return;
+        }
+
         self.content_scroll = self.content_scroll.saturating_add(1);
+
         if matches!(self.current_view, ViewType::Section(_)) {
             self.hex_offset = self.hex_offset.saturating_add(16);
         }
     }
 
     fn content_scroll_up(&mut self) {
+        if !self.current_view.should_scroll() {
+            return;
+        }
+
         self.content_scroll = self.content_scroll.saturating_sub(1);
+
         if matches!(self.current_view, ViewType::Section(_)) {
             self.hex_offset = self.hex_offset.saturating_sub(16);
         }
     }
 
     fn content_page_down(&mut self) {
+        if !self.current_view.should_scroll() {
+            return;
+        }
+
         self.content_scroll = self.content_scroll.saturating_add(10);
+
         if matches!(self.current_view, ViewType::Section(_)) {
             self.hex_offset = self.hex_offset.saturating_add(160);
         }
     }
 
     fn content_page_up(&mut self) {
+        if !self.current_view.should_scroll() {
+            return;
+        }
+
         self.content_scroll = self.content_scroll.saturating_sub(10);
+
         if matches!(self.current_view, ViewType::Section(_)) {
             self.hex_offset = self.hex_offset.saturating_sub(160);
+        }
+    }
+
+    fn content_start(&mut self) {
+        self.content_scroll = 0;
+        self.hex_offset = 0;
+    }
+
+    fn content_end(&mut self) {
+        if !self.current_view.should_scroll() {
+            return;
+        }
+
+        if matches!(self.current_view, ViewType::Section(_)) {
+            self.hex_offset = self.content_scroll * 16;
         }
     }
 
@@ -371,7 +414,7 @@ impl App {
                             ExplorerItem::Section(name) => {
                                 let section = pe.sections.get(name).unwrap();
 
-                                ViewType::Section(section.dump(section.contains_code()))
+                                ViewType::Section(section.dump(&pe, section.contains_code()))
                             }
                             ExplorerItem::PEImportTable => ViewType::PEImportTable,
                             ExplorerItem::PEExportTable => ViewType::PEExportTable,
@@ -741,6 +784,8 @@ fn ui(f: &mut Frame, app: &mut App) {
 
     let content_text = app.render_content();
 
+    let scroll = min(content_text.lines.len(), app.content_scroll);
+
     let content = Paragraph::new(content_text)
         .block(
             Block::default()
@@ -750,18 +795,22 @@ fn ui(f: &mut Frame, app: &mut App) {
                 .style(Style::default().bg(app.theme.bg)),
         )
         .wrap(Wrap { trim: false })
-        .scroll((app.content_scroll as u16, 0));
+        .scroll((scroll as u16, 0));
 
     f.render_widget(content, main_chunks[1]);
 
     // Status bar
     let status = format!(
-        "q: Quit | Tab/h/l: Switch pane | j/k: Navigate | Enter: Select | Active: {:?}",
+        "q: Quit | Tab/h/l: Switch pane | j/k: Navigate | Enter: Select | Active: {:?} | Scroll: {scroll}",
         app.active_pane
     );
+
     let status_para =
         Paragraph::new(status).style(Style::default().bg(app.theme.bg).fg(app.theme.fg));
+
     f.render_widget(status_para.centered(), chunks[2]);
+
+    app.content_scroll = scroll;
 }
 
 pub fn main(exec_path: &PathBuf, exec: Exec) -> Result<(), Box<dyn Error>> {

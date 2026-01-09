@@ -7,11 +7,10 @@ use std::{collections::HashMap, io::Read};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
-use capstone::prelude::*;
-
-use crate::format::format_u32_as_ctime;
-use crate::disasm::is_padding_instruction;
+use crate::demangle::{demangle_msvc, is_mangled_symbol};
+use crate::disasm::disasm_pe_code;
 use crate::dump::*;
+use crate::format::format_u32_as_ctime;
 
 /*
  * https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
@@ -1109,37 +1108,20 @@ impl Section {
         return (self.header.characteristics & (SectionFlags::CntCode as u32)) > 0;
     }
 
-    pub fn dump(&self, disasm_code: bool) -> Dump {
+    pub fn dump(&self, pe: &PE, disasm_code: bool) -> Dump {
         let mut dump = Dump::new_with_string(format!("Section ({})", self.header.name));
 
         dump.push_child(self.header.dump());
 
         if disasm_code {
-            if self.header.characteristics & SectionFlags::CntCode as u32 > 0 {
-                /* TODO: find a way to initialize a global capstone object */
-                let cs = Capstone::new()
-                    .x86()
-                    .mode(arch::x86::ArchMode::Mode64)
-                    .syntax(arch::x86::ArchSyntax::Intel)
-                    .detail(false)
-                    .build()
-                    .expect("Failed to initialized Capstone disasm");
+            if (self.header.characteristics & SectionFlags::CntCode as u32) > 0 {
+                let res = disasm_pe_code(&pe, &self.data, self.header.virtual_address as u64);
 
-                let instructions = cs
-                    .disasm_all(&self.data, self.header.virtual_address as u64)
-                    .expect("Failed to disassemble");
-
-                let mut code = Vec::new();
-
-                for instruction in instructions.as_ref() {
-                    if is_padding_instruction(&instruction) {
-                        continue;
-                    }
-
-                    code.push(instruction.to_string());
+                if let Ok(code) = res {
+                    dump.set_raw_data(DumpRawData::Code(code));
+                } else {
+                    dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
                 }
-
-                dump.set_raw_data(DumpRawData::Code(code));
             } else {
                 dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
             }
@@ -1398,7 +1380,12 @@ impl HintNameEntry {
             entry.pad = false;
         }
 
-        entry.name = String::from_utf8(name_buffer).expect("Invalid name found in Hint/Name Table");
+        let name = String::from_utf8(name_buffer).expect("Invalid name found in Hint/Name Table");
+
+        entry.name = match is_mangled_symbol(name.as_str()) {
+            true => demangle_msvc(name.as_str()).unwrap(),
+            false => name,
+        };
 
         return Ok(entry);
     }
@@ -1426,7 +1413,9 @@ impl HintNameData {
             name_buffer.push(c);
         }
 
-        return Ok(String::from_utf8(name_buffer).expect("Invalid name found in Hint/Name Table for DLL"));
+        return Ok(
+            String::from_utf8(name_buffer).expect("Invalid name found in Hint/Name Table for DLL")
+        );
     }
 }
 
@@ -1838,9 +1827,8 @@ impl ExceptionTable {
     }
 
     pub fn dump(&self) -> Dump {
-        let mut dump = Dump::new(
-            format!("Exception Table ({} entries)", self.entries.len()).as_str(),
-        );
+        let mut dump =
+            Dump::new(format!("Exception Table ({} entries)", self.entries.len()).as_str());
 
         for entry in self.entries.iter() {
             dump.push_child(entry.dump());
@@ -2019,14 +2007,18 @@ impl PE {
             let mut import_lookup_tables = Vec::new();
 
             for idt in import_directory_table.entries.iter() {
-                let ilt_offset = self.convert_rva_to_file_offset(idt.import_lookup_table_rva).expect("Cannot find file offset for Import Lookup Table");
+                let ilt_offset = self
+                    .convert_rva_to_file_offset(idt.import_lookup_table_rva)
+                    .expect("Cannot find file offset for Import Lookup Table");
                 cursor.set_position(ilt_offset);
 
                 let ilt = ImportLookupTable::from_parser(cursor, self.is_32_bits())?;
 
                 let mut hnd = HintNameData::default();
 
-                let dll_name_offset = self.convert_rva_to_file_offset(idt.name_rva).expect("Cannot find file offset_for_dll_name");
+                let dll_name_offset = self
+                    .convert_rva_to_file_offset(idt.name_rva)
+                    .expect("Cannot find file offset_for_dll_name");
 
                 cursor.set_position(dll_name_offset);
 
@@ -2034,10 +2026,12 @@ impl PE {
 
                 for ilt_entry in ilt.entries.iter() {
                     if ilt_entry.by_ordinal {
-                        continue
+                        continue;
                     }
 
-                    let ilt_offset = self.convert_rva_to_file_offset(ilt_entry.hint_name_table_rva).expect("Cannot find file offset for Hint/Name table entry");
+                    let ilt_offset = self
+                        .convert_rva_to_file_offset(ilt_entry.hint_name_table_rva)
+                        .expect("Cannot find file offset for Hint/Name table entry");
 
                     cursor.set_position(ilt_offset);
 
