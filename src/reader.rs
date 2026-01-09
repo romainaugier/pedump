@@ -27,7 +27,7 @@ pub struct LEReader<'a> {
 }
 
 impl<'a> LEReader<'a> {
-    pub fn new(data: &'a [u8]) -> LEReader<'_> {
+    pub fn new(data: &'a [u8]) -> LEReader<'a> {
         return LEReader {
             data,
             position: 0,
@@ -131,6 +131,15 @@ impl<'a> LEReader<'a> {
         let mut arr = [0u8; N];
         arr.copy_from_slice(bytes);
         return Ok(arr);
+    }
+
+    #[inline]
+    pub fn peek_at<const N: usize>(&self) -> ReaderResult<u8> {
+        if (self.position + N) >= self.data.len() {
+            return Err(ReaderError::UnexpectedEof);
+        }
+
+        return Ok(self.data[self.position + N]);
     }
 
     #[inline]
@@ -269,6 +278,15 @@ impl<'a> BEReader<'a> {
     }
 
     #[inline]
+    pub fn peek_at<const N: usize>(&self) -> ReaderResult<u8> {
+        if (self.position + N) >= self.data.len() {
+            return Err(ReaderError::UnexpectedEof);
+        }
+
+        return Ok(self.data[self.position + N]);
+    }
+
+    #[inline]
     pub fn position(&self) -> usize {
         return self.position;
     }
@@ -391,6 +409,14 @@ impl<'a> Reader<'a> {
         match self {
             Reader::LittleEndian(r) => r.peek_n(),
             Reader::BigEndian(r) => r.peek_n(),
+        }
+    }
+
+    #[inline]
+    pub fn peek_at<const N: usize>(&self) -> ReaderResult<u8> {
+        match self {
+            Reader::LittleEndian(r) => r.peek_at::<N>(),
+            Reader::BigEndian(r) => r.peek_at::<N>(),
         }
     }
 

@@ -241,7 +241,9 @@ pub fn dump_pe(pe: &PE, args: &Args) {
 }
 
 pub fn dump_elf(elf: &ELF, args: &Args) {
-
+    if args.elf_header {
+        elf.headers.elf_header.dump().print(0, args.padding_size);
+    }
 }
 
 pub fn dump_exec(exec: &Exec, args: &Args) {

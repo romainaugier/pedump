@@ -539,7 +539,7 @@ impl OptionalHeader32 {
 
     #[rustfmt::skip]
     pub fn dump(&self) -> Dump {
-        let mut dump = Dump::new("Optional Header (32-bits)");
+        let mut dump = Dump::new("Optional Header (32-bit)");
 
         let mut standard_fields_dump = Dump::new("Standard Fields");
 
@@ -720,7 +720,7 @@ impl OptionalHeader64 {
 
     #[rustfmt::skip]
     pub fn dump(&self) -> Dump {
-        let mut dump = Dump::new("Optional Header (64-bits)");
+        let mut dump = Dump::new("Optional Header (64-bit)");
 
         let mut standard_fields_dump = Dump::new("Standard Fields");
 
@@ -2124,12 +2124,6 @@ impl PE {
 pub fn parse_pe(file_path: &PathBuf) -> Result<PE, Box<dyn std::error::Error>> {
     if !file_path.exists() {
         return Err("File does not exist".into());
-    }
-
-    let file_path_str: &str = file_path.to_str().expect("Cannot convert file_path to str");
-
-    if !file_path_str.ends_with(".exe") && !file_path_str.ends_with(".dll") {
-        return Err("File is not a Portable Executable (.exe | .dll)".into());
     }
 
     let file_bytes = std::fs::read(file_path).expect("Unable to open file");

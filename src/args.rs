@@ -9,6 +9,8 @@ pub struct Args {
     #[arg(long, short, default_value_t = false)]
     pub tui: bool,
 
+    /* PE */
+
     /// Dumps the PE legacy MS-DOS compatible header
     #[arg(long, default_value_t = false)]
     pub pe_dos_header: bool,
@@ -60,6 +62,14 @@ pub struct Args {
     /// Dump the exception information from the Exception Table, if any
     #[arg(long, default_value_t = false)]
     pub pe_exc_table: bool,
+
+    /* ELF */
+
+    /// Dumps the ELF base header
+    #[arg(long, default_value_t = false)]
+    pub elf_header: bool,
+
+    /* Dump formatting */
 
     /// Padding size to apply when dumping information for better readability
     #[arg(long, default_value_t = 4)]
