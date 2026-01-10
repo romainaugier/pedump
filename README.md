@@ -15,7 +15,7 @@ Usage: execdump.exe [OPTIONS] <FILE_PATH>
 
 Arguments:
   <FILE_PATH>
-
+  
 Options:
   -t, --tui
           Opens the executable in the terminal-based user interface for exploration
@@ -25,14 +25,6 @@ Options:
           Dumps the PE NT Header (most recent)
       --pe-optional-header
           Dumps the PE Optional (either 32/64) header
-      --sections
-          Dumps the Sections
-      --sections-filter <SECTIONS_FILTER>
-          Regulax expresion to filter the Sections to display [default: .*]
-      --sections-data
-          Dumps the Sections data along with the headers
-      --disasm
-          Disassemble the code found in the Sections containing code
       --pe-import
           Dump all the PE data related to imports, if any
       --pe-import-directory-table
@@ -45,6 +37,20 @@ Options:
           Dump the debug information from the Debug Directory, if any
       --pe-exc-table
           Dump the exception information from the Exception Table, if any
+      --elf-headers
+          Dumps all the ELF headers
+      --elf-header
+          Dumps the ELF Base Header
+      --elf-program-headers
+          Dumps the ELF Program Headers
+      --sections
+          Dumps the Sections
+      --sections-filter <SECTIONS_FILTER>
+          Regulax expresion to filter the Sections to display [default: .*]
+      --sections-data
+          Dumps the Sections data along with the headers
+      --disasm
+          Disassemble the code found in the Sections containing code
       --padding-size <PADDING_SIZE>
           Padding size to apply when dumping information for better readability [default: 4]
   -h, --help
@@ -85,7 +91,16 @@ Code:
 
 ### ELF
 
-Not supported yet.
+Headers:
+
+- :heavy_check_mark: ELF Header
+- :heavy_check_mark: Program Headers
+
+Sections: 
+
+Code:
+
+- :heavy_check_mark: Basic disassembly of the code sections
 
 ### Core
 
