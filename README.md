@@ -15,10 +15,11 @@ Usage: execdump.exe [OPTIONS] <FILE_PATH>
 
 Arguments:
   <FILE_PATH>
-  
+
 Options:
   -t, --tui
           Opens the executable in the terminal-based user interface for exploration
+
       --pe-dos-header
           Dumps the PE legacy MS-DOS compatible header
       --pe-nt-header
@@ -33,26 +34,33 @@ Options:
           Dump the Hint/Name Table, if any
       --pe-dlls
           Dump the DLLs names imported, if any
+      --pe-export
+          Dump all the PE data related to exports, if any
       --pe-debug-directory
           Dump the debug information from the Debug Directory, if any
       --pe-exc-table
           Dump the exception information from the Exception Table, if any
+
       --elf-headers
-          Dump all the ELF headers
+          Dumps all the ELF headers
       --elf-header
-          Dump the ELF Base Header
+          Dumps the ELF Base Header
       --elf-program-headers
-          Dump the ELF Program Headers
+          Dumps the ELF Program Headers
+
       --sections
-          Dump the Sections
+          Dumps the Sections
       --sections-filter <SECTIONS_FILTER>
           Regulax expresion to filter the Sections to display [default: .*]
       --sections-data
-          Dump the Sections data along the Sections headers
+          Dumps the Sections data along with the headers
+
       --disasm
           Disassemble the code found in the Sections containing code
+
       --padding-size <PADDING_SIZE>
           Padding size to apply when dumping information for better readability [default: 4]
+
   -h, --help
           Print help
   -V, --version
@@ -71,7 +79,7 @@ Headers:
 
 Sections:
 
-- :x: Export Table
+- :heavy_check_mark: Export Table
 - :heavy_check_mark: Import Table
 - :x: Resource Table
 - :heavy_check_mark: Exception Table
@@ -96,7 +104,7 @@ Headers:
 - :heavy_check_mark: ELF Header
 - :heavy_check_mark: Program Headers
 
-Sections: 
+Sections:
 
 Code:
 
@@ -121,7 +129,7 @@ Viewers:
   - :clock9: ELF Sections
   - :heavy_check_mark: Hex Viewer
   - :clock9: Disasm Viewer
-  
+
 ![tui](https://github.com/romainaugier/execdump/blob/main/res/tui.png)
 
 ## Acknowledgement
