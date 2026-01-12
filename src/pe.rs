@@ -1517,7 +1517,15 @@ impl ExportDirectoryTable {
 #[derive(Debug, Clone, Default)]
 #[repr(C)]
 pub struct ExportAddressTableEntry {
+    /// The address of the exported symbol when loaded into memory, relative to the image base.
+    /// For example, the address of an exported function.
     pub export_rva: u32,
+
+    /// The pointer to a null-terminated ASCII string in the export section.
+    /// This string must be within the range that is given by the export table data directory entry.
+    /// See https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#optional-header-data-directories-image-only
+    /// This string gives the DLL name and the name of the export (for example, "MYDLL.expfunc")
+    /// or the DLL name and the ordinal number of the export (for example, "MYDLL.#27").
     pub forwarder_rva: u32,
 }
 
@@ -1531,6 +1539,15 @@ impl ExportAddressTableEntry {
         entry.forwarder_rva = cursor.read_u32::<LittleEndian>()?;
 
         return Ok(entry);
+    }
+
+    pub fn dump(&self) -> Dump {
+        let mut dump = Dump::new("Export Address Table Entry");
+
+        dump.push_field("ExportRVA", format!("{:#x}", self.export_rva), None);
+        dump.push_field("ForwarderRVA", format!("{:#x}", self.forwarder_rva), None);
+
+        return dump;
     }
 }
 
@@ -1552,12 +1569,28 @@ pub struct ExportData {
 }
 
 impl ExportData {
-    pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
-    ) -> Result<ExportData, Box<dyn std::error::Error>> {
-        let mut export_data = ExportData::default();
+    pub fn dump(&self) -> Dump {
+        let mut dump = Dump::new("Export Data");
 
-        return Ok(export_data);
+        dump.push_child(self.export_directory_table.dump());
+
+        let mut eat_dump = Dump::new("Export Address Table");
+
+        for entry in self.export_address_table.iter() {
+            eat_dump.push_child(entry.dump());
+        }
+
+        dump.push_child(eat_dump);
+
+        let mut ent_dump = Dump::new("Export Name Table");
+
+        for entry in self.export_name_table.iter() {
+            ent_dump.push_field("", entry.clone(), None);
+        }
+
+        dump.push_child(ent_dump);
+
+        return dump;
     }
 }
 
@@ -1864,6 +1897,7 @@ pub struct PE {
     pub sections: HashMap<String, Section>,
     pub import_directory_table: Option<ImportDirectoryTable>,
     pub import_lookup_tables: Option<Vec<ImportLookupTable>>,
+    pub export_data: Option<ExportData>,
     pub hint_name_table: Option<HintNameTable>,
     pub debug_directory: Option<DebugDirectory>,
     pub exception_table: Option<ExceptionTable>,
@@ -2062,7 +2096,73 @@ impl PE {
         if let Some(file_offset) = etd_offset {
             cursor.set_position(file_offset);
 
-            let edt = ExportDirectoryTable::from_parser(cursor)?;
+            let mut export_data = ExportData::default();
+
+            export_data.export_directory_table = ExportDirectoryTable::from_parser(cursor)?;
+
+            if let Some(eat_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.export_address_table_rva) {
+                cursor.set_position(eat_offset);
+
+                for _ in 0..export_data.export_directory_table.address_table_entries as usize {
+                    let entry = ExportAddressTableEntry::from_parser(cursor)?;
+
+                    export_data.export_address_table.push(entry);
+                }
+            } else {
+                return Err("Cannot find the Export Address Table".into());
+            }
+
+            if let Some(entp_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.name_pointer_rva) {
+                cursor.set_position(entp_offset);
+
+                for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
+                    let rva = cursor.read_u32::<LittleEndian>()?;
+
+                    let old_position = cursor.position();
+
+                    export_data.export_name_pointer_table.push(rva);
+
+                    cursor.set_position(old_position);
+                }
+            } else {
+                return Err("Cannot find the Export Name Pointer Table".into());
+            }
+
+            if let Some(eot_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.ordinal_table_rva) {
+                cursor.set_position(eot_offset);
+
+                for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
+                    let ordinal = cursor.read_u16::<LittleEndian>()?;
+
+                    export_data.export_ordinal_table.push(ordinal);
+                }
+            } else {
+                return Err("Cannot find the Export Ordinal Table".into());
+            }
+
+            if let Some(ent_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.name_rva) {
+                cursor.set_position(ent_offset);
+
+                for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
+                    let mut buffer = Vec::new();
+
+                    loop {
+                        let c = cursor.read_u8()?;
+
+                        if c == b'\0' {
+                            break;
+                        }
+
+                        buffer.push(c);
+                    }
+
+                    export_data.export_name_table.push(String::from_utf8(buffer)?);
+                }
+            } else {
+                return Err("Cannot find the Export Name Table".into());
+            }
+
+            self.export_data = Some(export_data);
         }
 
         return Ok(());

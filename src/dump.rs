@@ -221,6 +221,15 @@ pub fn dump_pe(pe: &PE, args: &Args) {
         }
     }
 
+    if args.pe_export {
+        if let Some(ref export_data) = pe.export_data {
+            export_data.dump().print(0, args.padding_size);
+        } else {
+            println!("Export Data");
+            println!("No export data found in PE");
+        }
+    }
+
     if args.pe_debug_directory {
         if let Some(ref dd) = pe.debug_directory {
             dd.dump().print(0, args.padding_size);

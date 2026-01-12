@@ -5,7 +5,6 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
-    layout::{Size},
 };
 
 use crossterm::{
@@ -21,7 +20,7 @@ use std::{error::Error, io, path::PathBuf, cmp::min};
 
 use crate::{char_utils, dump::{Dump, DumpRawData}, x86_64::starts_with_type_qualifier};
 use crate::exec::Exec;
-use crate::x86_64::{is_x86_64_register, is_type_qualifier};
+use crate::x86_64::{is_x86_64_register};
 
 #[derive(Clone, Debug)]
 struct Theme {

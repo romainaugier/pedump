@@ -3,7 +3,7 @@ use crate::{disasm::disasm_elf_code, dump::{Dump, DumpRawData}, reader::{BEReade
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
-use std::{collections::HashMap, fmt::Display, ops::BitAnd, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 pub const ELF_MAGIC: u32 = 0x7f454c46;
 pub const ELF_MAGIC_ARRAY: [u8; 4] = [0x7F, b'E', b'L', b'F'];
@@ -1005,7 +1005,6 @@ impl std::fmt::Display for SectionType {
             SectionType::GnuVerneed => write!(f, "SHT_GNU_VERNEED"),
             SectionType::GnuVersym => write!(f, "SHT_GNU_VERSYM"),
             SectionType::Num => write!(f, "SHT_NUM"),
-            _ => write!(f, "OS/Architecture specific")
         }
     }
 }
@@ -1172,7 +1171,7 @@ impl ELFSectionHeader {
 
     pub fn flags(&self) -> u64 {
         match &self {
-            ELFSectionHeader::ELFSectionHeader32(h) => (h.sh_flags as u64),
+            ELFSectionHeader::ELFSectionHeader32(h) => h.sh_flags as u64,
             ELFSectionHeader::ELFSectionHeader64(h) => h.sh_flags,
         }
     }

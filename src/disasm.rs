@@ -81,7 +81,7 @@ fn build_import_map(pe: &PE) -> HashMap<u64, String> {
 }
 
 /// Extract string references from code
-fn find_string_references(code: &[u8], base_addr: u64, pe: &PE) -> HashMap<u64, String> {
+fn find_string_references(pe: &PE) -> HashMap<u64, String> {
     let mut strings = HashMap::new();
 
     for (section_name, section) in &pe.sections {
@@ -499,7 +499,7 @@ pub fn disasm_pe_code(
     let instructions = cs.disasm_all(code, addr).expect("Failed to disassemble");
 
     let import_map = build_import_map(pe);
-    let string_refs = find_string_references(code, addr, pe);
+    let string_refs = find_string_references(pe);
     let label_map = build_label_map(instructions.as_ref());
     let xrefs = build_xrefs(instructions.as_ref(), &string_refs);
 
@@ -572,8 +572,9 @@ pub fn disasm_pe_code(
     return Ok(output);
 }
 
+#[allow(dead_code)]
 pub fn disasm_elf_code(
-    elf: &ELF,
+    _elf: &ELF,
     code: &[u8],
     addr: u64,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {

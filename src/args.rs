@@ -41,6 +41,10 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub pe_dlls: bool,
 
+    /// Dump all the PE data related to exports, if any
+    #[arg(long, default_value_t = false)]
+    pub pe_export: bool,
+
     /// Dump the debug information from the Debug Directory, if any
     #[arg(long, default_value_t = false)]
     pub pe_debug_directory: bool,
