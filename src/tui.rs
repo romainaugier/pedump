@@ -1,7 +1,7 @@
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
@@ -465,20 +465,20 @@ impl App {
         }
     }
 
-    fn render_content(&self) -> Text<'_> {
+    fn render_content(&self, rect: &Rect) -> Text<'_> {
         match &self.current_view {
-            ViewType::Welcome => self.render_welcome(),
-            ViewType::Header(dump) => self.render_header(dump),
-            ViewType::Section(dump) => self.render_section(dump),
-            ViewType::PEImportTable => self.render_import_table(),
-            ViewType::PEDebugDirectory => self.render_debug_directory(),
-            ViewType::PEExceptionTable => self.render_exception_table(),
+            ViewType::Welcome => self.render_welcome(rect),
+            ViewType::Header(dump) => self.render_header(rect, dump),
+            ViewType::Section(dump) => self.render_section(rect, dump),
+            ViewType::PEImportTable => self.render_import_table(rect),
+            ViewType::PEDebugDirectory => self.render_debug_directory(rect),
+            ViewType::PEExceptionTable => self.render_exception_table(rect),
             _ => Text::from("Not implemented yet"),
         }
     }
 
     #[rustfmt::skip]
-    fn render_welcome(&self) -> Text<'_> {
+    fn render_welcome(&self, _rect: &Rect) -> Text<'_> {
         return Text::from(vec![
             Line::from(Span::styled("Welcome to execdump", Style::default().fg(self.theme.title).add_modifier(Modifier::BOLD))),
             Line::from(""),
@@ -575,7 +575,7 @@ impl App {
         return lines;
     }
 
-    fn render_header(&self, dump: &Dump) -> Text<'_> {
+    fn render_header(&self, rect: &Rect, dump: &Dump) -> Text<'_> {
         let indent = 4;
 
         return Text::from(self.lines_from_dump(dump, 0, indent));
@@ -585,7 +585,7 @@ impl App {
      * Hex Viewer
      */
 
-    fn render_section_hex(&self, name: &str, data: &[u8]) -> Text<'_> {
+    fn render_section_hex(&self, rect: &Rect, name: &str, data: &[u8]) -> Text<'_> {
         let mut lines = vec![
             Line::from(Span::styled(
                 format!("Section: {}", name),
@@ -596,10 +596,14 @@ impl App {
             Line::from(""),
         ];
 
-        let start = self.hex_offset.min(data.len());
-        let end = (start + 2048).min(data.len());
+        let hex_step = 16;
 
-        for offset in (start..end).step_by(16) {
+        let height = rect.as_size().height as usize;
+
+        let start = self.hex_offset.min(data.len());
+        let end = (start + height * hex_step).min(data.len());
+
+        for offset in (start..end).step_by(hex_step) {
             let mut hex_parts = vec![Span::styled(
                 format!("{:08X}  ", offset),
                 Style::default().fg(self.theme.hex_offset),
@@ -620,7 +624,7 @@ impl App {
             }
 
             // Padding
-            for _ in chunk.len()..16 {
+            for _ in chunk.len()..hex_step {
                 hex_parts.push(Span::raw("   "));
             }
 
@@ -749,7 +753,7 @@ impl App {
         }
     }
 
-    fn render_section_code(&self, name: &str, code: &[String]) -> Text<'_> {
+    fn render_section_code(&self, rect: &Rect, name: &str, code: &[String]) -> Text<'_> {
         let mut lines = vec![
             Line::from(Span::styled(
                 format!("Section: {}", name),
@@ -760,22 +764,27 @@ impl App {
             Line::from(""),
         ];
 
-        for loc in code {
+        let height = rect.as_size().height as usize;
+
+        let start = if (height + self.content_scroll) > code.len() { code.len().saturating_sub(height) } else { self.content_scroll };
+        let end = (start + height).min(code.len());
+
+        for loc in &code[start..end] {
             lines.push(self.highlight_disasm_line(loc));
         }
 
         return Text::from(lines);
     }
 
-    fn render_section(&self, dump: &Dump) -> Text<'_> {
+    fn render_section(&self, rect: &Rect, dump: &Dump) -> Text<'_> {
         match dump.raw_data() {
-            DumpRawData::Bytes(data) => self.render_section_hex(dump.label(), &data),
-            DumpRawData::Code(code) => self.render_section_code(dump.label(), code),
+            DumpRawData::Bytes(data) => self.render_section_hex(rect, dump.label(), &data),
+            DumpRawData::Code(code) => self.render_section_code(rect, dump.label(), code),
             DumpRawData::None() => Text::from("No data found in section"),
         }
     }
 
-    fn render_import_table(&self) -> Text<'_> {
+    fn render_import_table(&self, rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(
@@ -799,7 +808,7 @@ impl App {
         return Text::from("Not supported for executable type other than PE");
     }
 
-    fn render_debug_directory(&self) -> Text<'_> {
+    fn render_debug_directory(&self, rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(
@@ -823,7 +832,7 @@ impl App {
         return Text::from("Not supported for executable type other than PE");
     }
 
-    fn render_exception_table(&self) -> Text<'_> {
+    fn render_exception_table(&self, rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(
@@ -921,9 +930,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         Style::default().fg(app.theme.border)
     };
 
-    let content_text = app.render_content();
-
-    let scroll = min(content_text.lines.len(), app.content_scroll);
+    let content_text = app.render_content(&main_chunks[1]);
 
     let content = Paragraph::new(content_text)
         .block(
@@ -933,23 +940,22 @@ fn ui(f: &mut Frame, app: &mut App) {
                 .border_style(content_border_style)
                 .style(Style::default().bg(app.theme.bg)),
         )
-        .wrap(Wrap { trim: false })
-        .scroll((scroll as u16, 0));
+        .wrap(Wrap { trim: false });
 
     f.render_widget(content, main_chunks[1]);
 
     // Status bar
     let status = format!(
-        "q: Quit | Tab/h/l: Switch pane | j/k: Navigate | Enter: Select | Active: {:?} | Scroll: {scroll}",
+        "q: Quit | Tab/h/l: Switch pane | j/k: Navigate | Enter: Select | Active: {:?}",
         app.active_pane
     );
 
-    let status_para =
-        Paragraph::new(status).style(Style::default().bg(app.theme.bg).fg(app.theme.fg));
+    let status_para = Paragraph::new(status)
+        .style(Style::default()
+        .bg(app.theme.bg)
+        .fg(app.theme.fg));
 
     f.render_widget(status_para.centered(), chunks[2]);
-
-    app.content_scroll = scroll;
 }
 
 pub fn main(exec_path: &PathBuf, exec: Exec) -> Result<(), Box<dyn Error>> {

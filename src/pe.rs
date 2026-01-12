@@ -2216,6 +2216,29 @@ impl PE {
 
         return Ok(());
     }
+
+    pub fn get_import_map(&self) -> HashMap<u64, String> {
+        let mut map = HashMap::new();
+
+        if let (Some(idt), Some(hnt)) = (&self.import_directory_table, &self.hint_name_table) {
+            for (idx, entry) in idt.entries.iter().enumerate() {
+                if idx >= hnt.entries.len() {
+                    break;
+                }
+
+                let dll_name = &hnt.entries[idx].dll_name;
+                let iat_rva = entry.import_address_table_rva as u64;
+
+                for (func_idx, func_entry) in hnt.entries[idx].entries.iter().enumerate() {
+                    let func_rva = iat_rva + (func_idx * if self.is_32_bits() { 4 } else { 8 }) as u64;
+                    let full_name = format!("{}!{}", dll_name, func_entry.name);
+                    map.insert(func_rva, full_name);
+                }
+            }
+        }
+
+        return map;
+    }
 }
 
 /*
