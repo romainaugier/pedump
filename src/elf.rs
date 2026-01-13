@@ -1,4 +1,4 @@
-use crate::{disasm::disasm_elf_code, dump::{Dump, DumpRawData}, reader::{BEReader, LEReader, Reader}};
+use crate::{disasm::disasm_and_format_elf_code, dump::{Dump, DumpRawData}, reader::{BEReader, LEReader, Reader}};
 
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
@@ -1235,8 +1235,7 @@ impl ELFSection {
 
         if disasm_code {
             if self.contains_code() {
-
-                let res = disasm_elf_code(elf, &self.data, self.header.virtual_address());
+                let res = disasm_and_format_elf_code(elf, &self.data, self.header.virtual_address());
 
                 if let Ok(code) = res {
                     dump.set_raw_data(DumpRawData::Code(code));

@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
 use crate::demangle::{demangle_msvc, is_mangled_symbol};
-use crate::disasm::disasm_pe_code;
+use crate::disasm::disasm_and_format_pe_code;
 use crate::dump::*;
 use crate::format::format_u32_as_ctime;
 
@@ -1115,7 +1115,7 @@ impl Section {
 
         if disasm_code {
             if (self.header.characteristics & SectionFlags::CntCode as u32) > 0 {
-                let res = disasm_pe_code(&pe, &self.data, self.header.virtual_address as u64);
+                let res = disasm_and_format_pe_code(&pe, &self.data, self.header.virtual_address as u64);
 
                 if let Ok(code) = res {
                     dump.set_raw_data(DumpRawData::Code(code));
