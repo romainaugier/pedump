@@ -114,12 +114,18 @@ Code:
 
 Utilities:
   - :clock9: C++ Symbol Demangler
+  - :x: Known symbols loading (kernel32, user32, glibc...)
 
-PE/ELF Disasm:
-  - :x: Replace call addresses with symbols
-  - :x: Structure program
-  - :x: Easily find system calls
-  - :x: Generate C code from assembly functions
+Decompiler:
+  - :x: CFG recovery
+  - :x: SSA construction
+  - :x: Data-flow analysis
+  - :x: Control-flow structuring
+  - :x: Expression recovery
+  - :x: Type recovery
+  - :x: Variable recovery
+  - :x: High-level cleanup passes
+  - :x: C code generation
 
 ### TUI
 
@@ -129,6 +135,7 @@ Viewers:
   - :clock9: ELF Sections
   - :heavy_check_mark: Hex Viewer
   - :clock9: Disasm Viewer
+  - :x: Decompiler Viewer
 
 ![tui](https://github.com/romainaugier/execdump/blob/main/res/tui.png)
 

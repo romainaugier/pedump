@@ -16,7 +16,7 @@ use crossterm::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::{error::Error, io, path::PathBuf, cmp::min};
+use std::{error::Error, io, path::PathBuf};
 
 use crate::{char_utils, dump::{Dump, DumpRawData}, x86_64::starts_with_type_qualifier};
 use crate::exec::Exec;
@@ -433,7 +433,7 @@ impl App {
                             ExplorerItem::Section(name) => {
                                 let section = pe.sections.get(name).unwrap();
 
-                                ViewType::Section(section.dump(&pe, section.contains_code()))
+                                ViewType::Section(section.dump(&pe, section.contains_code(), true))
                             }
                             ExplorerItem::PEImportTable => ViewType::PEImportTable,
                             ExplorerItem::PEExportTable => ViewType::PEExportTable,
@@ -575,7 +575,7 @@ impl App {
         return lines;
     }
 
-    fn render_header(&self, rect: &Rect, dump: &Dump) -> Text<'_> {
+    fn render_header(&self, _rect: &Rect, dump: &Dump) -> Text<'_> {
         let indent = 4;
 
         return Text::from(self.lines_from_dump(dump, 0, indent));
@@ -784,7 +784,7 @@ impl App {
         }
     }
 
-    fn render_import_table(&self, rect: &Rect) -> Text<'_> {
+    fn render_import_table(&self, _rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(
@@ -808,7 +808,7 @@ impl App {
         return Text::from("Not supported for executable type other than PE");
     }
 
-    fn render_debug_directory(&self, rect: &Rect) -> Text<'_> {
+    fn render_debug_directory(&self, _rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(
@@ -832,7 +832,7 @@ impl App {
         return Text::from("Not supported for executable type other than PE");
     }
 
-    fn render_exception_table(&self, rect: &Rect) -> Text<'_> {
+    fn render_exception_table(&self, _rect: &Rect) -> Text<'_> {
         if let Exec::PE(pe) = &self.exec {
             let mut lines = vec![
                 Line::from(Span::styled(

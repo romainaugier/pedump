@@ -6,16 +6,14 @@ use capstone::arch::ArchOperand;
 use capstone::arch::x86;
 use capstone::prelude::*;
 
-use itertools::Itertools;
 use std::array;
-use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug, Default)]
 pub struct X86Instruction {
-    mnemonic: String,
-    address: u64,
-    num_operands: u8,
-    operands: [x86::X86Operand; 4], // Let's use just 4 operands for now
+    pub mnemonic: String,
+    pub address: u64,
+    pub num_operands: u8,
+    pub operands: [x86::X86Operand; 4], // Let's use just 4 operands for now
 }
 
 fn format_x86_reg(cs: &Capstone, id: &RegId) -> String {
@@ -114,26 +112,7 @@ impl X86Instruction {
     }
 }
 
-#[derive(Debug)]
-pub struct Function {
-    pub start_addr: u64,
-    pub end_addr: u64,
-    pub name: String,
-    pub insns: Vec<X86Instruction>,
-}
-
-impl Function {
-    pub fn new(start_addr: u64, name: String) -> Self {
-        return Self {
-            start_addr,
-            end_addr: start_addr,
-            name,
-            insns: Vec::new(),
-        };
-    }
-}
-
-fn is_padding_instruction(insn: &Insn) -> bool {
+pub fn is_padding_instruction(insn: &Insn) -> bool {
     match (insn.mnemonic(), insn.op_str()) {
         (Some("add"), Some("byte ptr [rax], al")) => true,
         (Some("nop"), _) => true,
@@ -144,53 +123,6 @@ fn is_padding_instruction(insn: &Insn) -> bool {
         (Some("sub"), Some("rsp, 0")) => true,
         _ => false,
     }
-}
-
-fn is_function_ending_instruction(insn: &Insn) -> bool {
-    match insn.mnemonic() {
-        Some("ret") => true,
-        _ => false,
-    }
-}
-
-fn find_functions(
-    insns: &[Insn],
-    cs: &Capstone,
-) -> Result<Vec<Function>, Box<dyn std::error::Error>> {
-    let mut functions = Vec::new();
-
-    let first_address = insns.first().map_or(0, |i| i.address());
-
-    let mut current_function = Some(Function::new(
-        first_address,
-        format!("FUNC_{first_address}"),
-    ));
-
-    for insn in insns.as_ref() {
-        if is_padding_instruction(insn) {
-            continue;
-        }
-
-        if let Some(function) = current_function.as_mut() {
-            if is_function_ending_instruction(insn) {
-                functions.push(current_function.take().unwrap());
-                current_function = None;
-                continue;
-            }
-
-            function.insns.push(X86Instruction::from_cs(insn, cs)?);
-        } else {
-            let insn_address = insn.address();
-            let mut new_function = Function::new(insn_address, format!("FUNC_{insn_address}"));
-            new_function.insns.push(X86Instruction::from_cs(insn, cs)?);
-        }
-    }
-
-    if let Some(function) = current_function {
-        functions.push(function);
-    }
-
-    return Ok(functions);
 }
 
 pub fn disasm_and_format_pe_code(

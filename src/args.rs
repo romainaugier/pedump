@@ -13,6 +13,10 @@ pub struct Args {
      * PE
      */
 
+    /// Dumps all the PE headers
+    #[arg(long, default_value_t = false)]
+    pub pe_headers: bool,
+
     /// Dumps the PE legacy MS-DOS compatible header
     #[arg(long, default_value_t = false)]
     pub pe_dos_header: bool,
@@ -88,6 +92,11 @@ pub struct Args {
     /// Disassemble the code found in the Sections containing code
     #[arg(long, default_value_t = false)]
     pub disasm: bool,
+
+    /// Decompile the code found in the Sections containing code.
+    /// It will override disasm if not set
+    #[arg(long, default_value_t = false)]
+    pub decompile: bool,
 
     /*
      * Formatting

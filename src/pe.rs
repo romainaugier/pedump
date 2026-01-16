@@ -1,16 +1,16 @@
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::error::Error;
-use std::io;
 use std::path::PathBuf;
-use std::{collections::HashMap, io::Read};
+use std::collections::HashMap;
 
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
 use crate::demangle::{demangle_msvc, is_mangled_symbol};
 use crate::disasm::disasm_and_format_pe_code;
+use crate::decompiler::decompile_and_format_pe_code;
 use crate::dump::*;
 use crate::format::format_u32_as_ctime;
+use crate::reader::{LEReader, Reader};
 
 /*
  * https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
@@ -53,17 +53,17 @@ impl DOSHeader {
         return DOSHeader::default();
     }
 
-    fn from_parser(cursor: &mut io::Cursor<&Vec<u8>>) -> Result<DOSHeader, Box<dyn Error>> {
+    fn from_parser(reader: &mut Reader) -> Result<DOSHeader, Box<dyn Error>> {
         let mut header: DOSHeader = DOSHeader::new();
-        header.e_magic = cursor.read_u16::<LittleEndian>()?;
+        header.e_magic = reader.read_u16()?;
 
         if header.e_magic != DOS_MAGIC {
             return Err("Invalid DOS magic number".into());
         }
 
-        cursor.set_position(0x3C);
+        reader.set_position(0x3C)?;
 
-        header.e_lfanew = cursor.read_u32::<LittleEndian>()?;
+        header.e_lfanew = reader.read_u32()?;
 
         return Ok(header);
     }
@@ -224,16 +224,16 @@ pub struct COFFHeader {
 }
 
 impl COFFHeader {
-    fn from_parser(cursor: &mut io::Cursor<&Vec<u8>>) -> Result<COFFHeader, Box<dyn Error>> {
+    fn from_parser(reader: &mut Reader) -> Result<COFFHeader, Box<dyn Error>> {
         let mut header: COFFHeader = COFFHeader::default();
 
-        header.machine = cursor.read_u16::<LittleEndian>()?;
-        header.number_of_sections = cursor.read_u16::<LittleEndian>()?;
-        header.time_date_stamp = cursor.read_u32::<LittleEndian>()?;
-        header.pointer_to_symbol_table = cursor.read_u32::<LittleEndian>()?;
-        header.number_of_symbols = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_optional_header = cursor.read_u16::<LittleEndian>()?;
-        header.characteristics = cursor.read_u16::<LittleEndian>()?;
+        header.machine = reader.read_u16()?;
+        header.number_of_sections = reader.read_u16()?;
+        header.time_date_stamp = reader.read_u32()?;
+        header.pointer_to_symbol_table = reader.read_u32()?;
+        header.number_of_symbols = reader.read_u32()?;
+        header.size_of_optional_header = reader.read_u16()?;
+        header.characteristics = reader.read_u16()?;
 
         return Ok(header);
     }
@@ -273,15 +273,15 @@ pub struct NTHeader {
 }
 
 impl NTHeader {
-    fn from_parser(cursor: &mut io::Cursor<&Vec<u8>>) -> Result<NTHeader, Box<dyn Error>> {
+    fn from_parser(reader: &mut Reader) -> Result<NTHeader, Box<dyn Error>> {
         let mut header: NTHeader = NTHeader::default();
-        header.signature = cursor.read_u32::<LittleEndian>()?;
+        header.signature = reader.read_u32()?;
 
         if header.signature != NT_PE_SIGNATURE {
             return Err("Invalid PE signature in NT Header".into());
         }
 
-        header.coff_header = COFFHeader::from_parser(cursor)?;
+        header.coff_header = COFFHeader::from_parser(reader)?;
 
         return Ok(header);
     }
@@ -314,12 +314,12 @@ impl ImageDataDirectory {
     }
 
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<ImageDataDirectory, Box<dyn std::error::Error>> {
         let mut idd = ImageDataDirectory::new();
 
-        idd.virtual_address = cursor.read_u32::<LittleEndian>()?;
-        idd.size = cursor.read_u32::<LittleEndian>()?;
+        idd.virtual_address = reader.read_u32()?;
+        idd.size = reader.read_u32()?;
 
         return Ok(idd);
     }
@@ -484,55 +484,55 @@ impl OptionalHeader32 {
         return OptionalHeader32::default();
     }
 
-    fn from_parser(cursor: &mut io::Cursor<&Vec<u8>>) -> Result<OptionalHeader32, Box<dyn Error>> {
+    fn from_parser(reader: &mut Reader) -> Result<OptionalHeader32, Box<dyn Error>> {
         let mut header: OptionalHeader32 = OptionalHeader32::new();
 
-        header.magic = cursor.read_u16::<LittleEndian>()?;
-        header.major_linker_version = cursor.read_u8()?;
-        header.minor_linker_version = cursor.read_u8()?;
-        header.size_of_code = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_initialized_data = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_uninitialized_data = cursor.read_u32::<LittleEndian>()?;
-        header.address_of_entry_point = cursor.read_u32::<LittleEndian>()?;
-        header.base_of_code = cursor.read_u32::<LittleEndian>()?;
-        header.base_of_data = cursor.read_u32::<LittleEndian>()?;
-        header.image_base = cursor.read_u32::<LittleEndian>()?;
-        header.section_alignment = cursor.read_u32::<LittleEndian>()?;
-        header.file_alignement = cursor.read_u32::<LittleEndian>()?;
-        header.major_operating_system_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_operating_system_version = cursor.read_u16::<LittleEndian>()?;
-        header.major_image_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_image_version = cursor.read_u16::<LittleEndian>()?;
-        header.major_subsystem_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_subsystem_version = cursor.read_u16::<LittleEndian>()?;
-        header.win32_version_value = cursor.read_u32::<LittleEndian>()?; /* reserved field */
-        header.size_of_image = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_headers = cursor.read_u32::<LittleEndian>()?;
-        header.checksum = cursor.read_u32::<LittleEndian>()?;
-        header.subsystem = cursor.read_u16::<LittleEndian>()?;
-        header.dll_characteristics = cursor.read_u16::<LittleEndian>()?;
-        header.size_of_stack_reserve = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_stack_commit = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_heap_reserve = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_heap_commit = cursor.read_u32::<LittleEndian>()?;
-        header.loader_flags = cursor.read_u32::<LittleEndian>()?; /* reserved_field */
-        header.number_of_rva_and_sizes = cursor.read_u32::<LittleEndian>()?;
-        header.export_table = ImageDataDirectory::from_parser(cursor)?;
-        header.import_table = ImageDataDirectory::from_parser(cursor)?;
-        header.resource_table = ImageDataDirectory::from_parser(cursor)?;
-        header.exception_table = ImageDataDirectory::from_parser(cursor)?;
-        header.certificate_table = ImageDataDirectory::from_parser(cursor)?;
-        header.base_relocation_table = ImageDataDirectory::from_parser(cursor)?;
-        header.debug = ImageDataDirectory::from_parser(cursor)?;
-        header.architecture = ImageDataDirectory::from_parser(cursor)?; /* reserved field */
-        header.global_ptr = ImageDataDirectory::from_parser(cursor)?;
-        header.tls_table = ImageDataDirectory::from_parser(cursor)?;
-        header.load_config_table = ImageDataDirectory::from_parser(cursor)?;
-        header.bound_import = ImageDataDirectory::from_parser(cursor)?;
-        header.import_address_table = ImageDataDirectory::from_parser(cursor)?; /* IAT */
-        header.delay_import_descriptor = ImageDataDirectory::from_parser(cursor)?;
-        header.clr_runtime_header = ImageDataDirectory::from_parser(cursor)?;
-        header.zero = ImageDataDirectory::from_parser(cursor)?; /* reserved field */
+        header.magic = reader.read_u16()?;
+        header.major_linker_version = reader.read_u8()?;
+        header.minor_linker_version = reader.read_u8()?;
+        header.size_of_code = reader.read_u32()?;
+        header.size_of_initialized_data = reader.read_u32()?;
+        header.size_of_uninitialized_data = reader.read_u32()?;
+        header.address_of_entry_point = reader.read_u32()?;
+        header.base_of_code = reader.read_u32()?;
+        header.base_of_data = reader.read_u32()?;
+        header.image_base = reader.read_u32()?;
+        header.section_alignment = reader.read_u32()?;
+        header.file_alignement = reader.read_u32()?;
+        header.major_operating_system_version = reader.read_u16()?;
+        header.minor_operating_system_version = reader.read_u16()?;
+        header.major_image_version = reader.read_u16()?;
+        header.minor_image_version = reader.read_u16()?;
+        header.major_subsystem_version = reader.read_u16()?;
+        header.minor_subsystem_version = reader.read_u16()?;
+        header.win32_version_value = reader.read_u32()?; /* reserved field */
+        header.size_of_image = reader.read_u32()?;
+        header.size_of_headers = reader.read_u32()?;
+        header.checksum = reader.read_u32()?;
+        header.subsystem = reader.read_u16()?;
+        header.dll_characteristics = reader.read_u16()?;
+        header.size_of_stack_reserve = reader.read_u32()?;
+        header.size_of_stack_commit = reader.read_u32()?;
+        header.size_of_heap_reserve = reader.read_u32()?;
+        header.size_of_heap_commit = reader.read_u32()?;
+        header.loader_flags = reader.read_u32()?; /* reserved_field */
+        header.number_of_rva_and_sizes = reader.read_u32()?;
+        header.export_table = ImageDataDirectory::from_parser(reader)?;
+        header.import_table = ImageDataDirectory::from_parser(reader)?;
+        header.resource_table = ImageDataDirectory::from_parser(reader)?;
+        header.exception_table = ImageDataDirectory::from_parser(reader)?;
+        header.certificate_table = ImageDataDirectory::from_parser(reader)?;
+        header.base_relocation_table = ImageDataDirectory::from_parser(reader)?;
+        header.debug = ImageDataDirectory::from_parser(reader)?;
+        header.architecture = ImageDataDirectory::from_parser(reader)?; /* reserved field */
+        header.global_ptr = ImageDataDirectory::from_parser(reader)?;
+        header.tls_table = ImageDataDirectory::from_parser(reader)?;
+        header.load_config_table = ImageDataDirectory::from_parser(reader)?;
+        header.bound_import = ImageDataDirectory::from_parser(reader)?;
+        header.import_address_table = ImageDataDirectory::from_parser(reader)?; /* IAT */
+        header.delay_import_descriptor = ImageDataDirectory::from_parser(reader)?;
+        header.clr_runtime_header = ImageDataDirectory::from_parser(reader)?;
+        header.zero = ImageDataDirectory::from_parser(reader)?; /* reserved field */
 
         return Ok(header);
     }
@@ -666,54 +666,54 @@ impl OptionalHeader64 {
         return OptionalHeader64::default();
     }
 
-    fn from_parser(cursor: &mut io::Cursor<&Vec<u8>>) -> Result<OptionalHeader64, Box<dyn Error>> {
+    fn from_parser(reader: &mut Reader) -> Result<OptionalHeader64, Box<dyn Error>> {
         let mut header: OptionalHeader64 = OptionalHeader64::new();
 
-        header.magic = cursor.read_u16::<LittleEndian>()?;
-        header.major_linker_version = cursor.read_u8()?;
-        header.minor_linker_version = cursor.read_u8()?;
-        header.size_of_code = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_initialized_data = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_uninitialized_data = cursor.read_u32::<LittleEndian>()?;
-        header.address_of_entry_point = cursor.read_u32::<LittleEndian>()?;
-        header.base_of_code = cursor.read_u32::<LittleEndian>()?;
-        header.image_base = cursor.read_u64::<LittleEndian>()?;
-        header.section_alignment = cursor.read_u32::<LittleEndian>()?;
-        header.file_alignement = cursor.read_u32::<LittleEndian>()?;
-        header.major_operating_system_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_operating_system_version = cursor.read_u16::<LittleEndian>()?;
-        header.major_image_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_image_version = cursor.read_u16::<LittleEndian>()?;
-        header.major_subsystem_version = cursor.read_u16::<LittleEndian>()?;
-        header.minor_subsystem_version = cursor.read_u16::<LittleEndian>()?;
-        header.win32_version_value = cursor.read_u32::<LittleEndian>()?; /* reserved field */
-        header.size_of_image = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_headers = cursor.read_u32::<LittleEndian>()?;
-        header.checksum = cursor.read_u32::<LittleEndian>()?;
-        header.subsystem = cursor.read_u16::<LittleEndian>()?;
-        header.dll_characteristics = cursor.read_u16::<LittleEndian>()?;
-        header.size_of_stack_reserve = cursor.read_u64::<LittleEndian>()?;
-        header.size_of_stack_commit = cursor.read_u64::<LittleEndian>()?;
-        header.size_of_heap_reserve = cursor.read_u64::<LittleEndian>()?;
-        header.size_of_heap_commit = cursor.read_u64::<LittleEndian>()?;
-        header.loader_flags = cursor.read_u32::<LittleEndian>()?; /* reserved_field */
-        header.number_of_rva_and_sizes = cursor.read_u32::<LittleEndian>()?;
-        header.export_table = ImageDataDirectory::from_parser(cursor)?;
-        header.import_table = ImageDataDirectory::from_parser(cursor)?;
-        header.resource_table = ImageDataDirectory::from_parser(cursor)?;
-        header.exception_table = ImageDataDirectory::from_parser(cursor)?;
-        header.certificate_table = ImageDataDirectory::from_parser(cursor)?;
-        header.base_relocation_table = ImageDataDirectory::from_parser(cursor)?;
-        header.debug = ImageDataDirectory::from_parser(cursor)?;
-        header.architecture = ImageDataDirectory::from_parser(cursor)?; /* reserved field */
-        header.global_ptr = ImageDataDirectory::from_parser(cursor)?;
-        header.tls_table = ImageDataDirectory::from_parser(cursor)?;
-        header.load_config_table = ImageDataDirectory::from_parser(cursor)?;
-        header.bound_import = ImageDataDirectory::from_parser(cursor)?;
-        header.import_address_table = ImageDataDirectory::from_parser(cursor)?; /* IAT */
-        header.delay_import_descriptor = ImageDataDirectory::from_parser(cursor)?;
-        header.clr_runtime_header = ImageDataDirectory::from_parser(cursor)?;
-        header.zero = ImageDataDirectory::from_parser(cursor)?; /* reserved field */
+        header.magic = reader.read_u16()?;
+        header.major_linker_version = reader.read_u8()?;
+        header.minor_linker_version = reader.read_u8()?;
+        header.size_of_code = reader.read_u32()?;
+        header.size_of_initialized_data = reader.read_u32()?;
+        header.size_of_uninitialized_data = reader.read_u32()?;
+        header.address_of_entry_point = reader.read_u32()?;
+        header.base_of_code = reader.read_u32()?;
+        header.image_base = reader.read_u64()?;
+        header.section_alignment = reader.read_u32()?;
+        header.file_alignement = reader.read_u32()?;
+        header.major_operating_system_version = reader.read_u16()?;
+        header.minor_operating_system_version = reader.read_u16()?;
+        header.major_image_version = reader.read_u16()?;
+        header.minor_image_version = reader.read_u16()?;
+        header.major_subsystem_version = reader.read_u16()?;
+        header.minor_subsystem_version = reader.read_u16()?;
+        header.win32_version_value = reader.read_u32()?; /* reserved field */
+        header.size_of_image = reader.read_u32()?;
+        header.size_of_headers = reader.read_u32()?;
+        header.checksum = reader.read_u32()?;
+        header.subsystem = reader.read_u16()?;
+        header.dll_characteristics = reader.read_u16()?;
+        header.size_of_stack_reserve = reader.read_u64()?;
+        header.size_of_stack_commit = reader.read_u64()?;
+        header.size_of_heap_reserve = reader.read_u64()?;
+        header.size_of_heap_commit = reader.read_u64()?;
+        header.loader_flags = reader.read_u32()?; /* reserved_field */
+        header.number_of_rva_and_sizes = reader.read_u32()?;
+        header.export_table = ImageDataDirectory::from_parser(reader)?;
+        header.import_table = ImageDataDirectory::from_parser(reader)?;
+        header.resource_table = ImageDataDirectory::from_parser(reader)?;
+        header.exception_table = ImageDataDirectory::from_parser(reader)?;
+        header.certificate_table = ImageDataDirectory::from_parser(reader)?;
+        header.base_relocation_table = ImageDataDirectory::from_parser(reader)?;
+        header.debug = ImageDataDirectory::from_parser(reader)?;
+        header.architecture = ImageDataDirectory::from_parser(reader)?; /* reserved field */
+        header.global_ptr = ImageDataDirectory::from_parser(reader)?;
+        header.tls_table = ImageDataDirectory::from_parser(reader)?;
+        header.load_config_table = ImageDataDirectory::from_parser(reader)?;
+        header.bound_import = ImageDataDirectory::from_parser(reader)?;
+        header.import_address_table = ImageDataDirectory::from_parser(reader)?; /* IAT */
+        header.delay_import_descriptor = ImageDataDirectory::from_parser(reader)?;
+        header.clr_runtime_header = ImageDataDirectory::from_parser(reader)?;
+        header.zero = ImageDataDirectory::from_parser(reader)?; /* reserved field */
 
         return Ok(header);
     }
@@ -991,11 +991,11 @@ impl SectionHeader {
     }
 
     fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<SectionHeader, Box<dyn std::error::Error>> {
         let mut header = SectionHeader::new();
 
-        let first_name_byte = cursor.read_u8()?;
+        let first_name_byte = reader.read_u8()?;
 
         if first_name_byte == 0x2F as u8 {
             // "/"
@@ -1003,7 +1003,7 @@ impl SectionHeader {
         } else if first_name_byte == 0x0 as u8 {
             // "\0"
             header.name = "empty".to_string();
-            cursor.set_position(cursor.position() + 39);
+            reader.set_position(reader.position() + 39)?;
 
             return Ok(header);
         } else {
@@ -1012,7 +1012,7 @@ impl SectionHeader {
             name_buffer.push(first_name_byte);
 
             for _ in 0..7 {
-                let c = cursor.read_u8()?;
+                let c = reader.read_u8()?;
 
                 if c == '\0' as u8 {
                     continue;
@@ -1024,15 +1024,15 @@ impl SectionHeader {
             header.name = String::from_utf8(name_buffer).expect("Invalid section name found in PE");
         }
 
-        header.virtual_size = cursor.read_u32::<LittleEndian>()?;
-        header.virtual_address = cursor.read_u32::<LittleEndian>()?;
-        header.size_of_raw_data = cursor.read_u32::<LittleEndian>()?;
-        header.ptr_to_raw_data = cursor.read_u32::<LittleEndian>()?;
-        header.pointer_to_relocations = cursor.read_u32::<LittleEndian>()?;
-        header.pointer_to_line_numbers = cursor.read_u32::<LittleEndian>()?;
-        header.number_of_relocations = cursor.read_u16::<LittleEndian>()?;
-        header.number_of_line_numbers = cursor.read_u16::<LittleEndian>()?;
-        header.characteristics = cursor.read_u32::<LittleEndian>()?;
+        header.virtual_size = reader.read_u32()?;
+        header.virtual_address = reader.read_u32()?;
+        header.size_of_raw_data = reader.read_u32()?;
+        header.ptr_to_raw_data = reader.read_u32()?;
+        header.pointer_to_relocations = reader.read_u32()?;
+        header.pointer_to_line_numbers = reader.read_u32()?;
+        header.number_of_relocations = reader.read_u16()?;
+        header.number_of_line_numbers = reader.read_u16()?;
+        header.characteristics = reader.read_u32()?;
 
         return Ok(header);
     }
@@ -1108,13 +1108,13 @@ impl Section {
         return (self.header.characteristics & (SectionFlags::CntCode as u32)) > 0;
     }
 
-    pub fn dump(&self, pe: &PE, disasm_code: bool) -> Dump {
+    pub fn dump(&self, pe: &PE, disasm_code: bool, decompile_code: bool) -> Dump {
         let mut dump = Dump::new_from_string(format!("Section ({})", self.header.name));
 
         dump.push_child(self.header.dump());
 
-        if disasm_code {
-            if (self.header.characteristics & SectionFlags::CntCode as u32) > 0 {
+        if self.contains_code() {
+            if disasm_code {
                 let res = disasm_and_format_pe_code(&pe, &self.data, self.header.virtual_address as u64);
 
                 if let Ok(code) = res {
@@ -1122,8 +1122,16 @@ impl Section {
                 } else {
                     dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
                 }
-            } else {
-                dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
+            }
+
+            if decompile_code {
+                let res = decompile_and_format_pe_code(&pe, &self.data, self.header.virtual_address as u64);
+
+                if let Ok(code) = res {
+                    dump.set_raw_data(DumpRawData::Code(code));
+                } else {
+                    dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
+                }
             }
         } else {
             dump.set_raw_data(DumpRawData::Bytes(self.data.clone()));
@@ -1150,15 +1158,15 @@ pub struct ImportDirectoryTableEntry {
 
 impl ImportDirectoryTableEntry {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<ImportDirectoryTableEntry, Box<dyn std::error::Error>> {
         let mut idt = ImportDirectoryTableEntry::default();
 
-        idt.import_lookup_table_rva = cursor.read_u32::<LittleEndian>()?;
-        idt.time_date_stamp = cursor.read_u32::<LittleEndian>()?;
-        idt.forwarder_chain = cursor.read_u32::<LittleEndian>()?;
-        idt.name_rva = cursor.read_u32::<LittleEndian>()?;
-        idt.import_address_table_rva = cursor.read_u32::<LittleEndian>()?;
+        idt.import_lookup_table_rva = reader.read_u32()?;
+        idt.time_date_stamp = reader.read_u32()?;
+        idt.forwarder_chain = reader.read_u32()?;
+        idt.name_rva = reader.read_u32()?;
+        idt.import_address_table_rva = reader.read_u32()?;
 
         return Ok(idt);
     }
@@ -1193,12 +1201,12 @@ pub struct ImportDirectoryTable {
 
 impl ImportDirectoryTable {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<ImportDirectoryTable, Box<dyn std::error::Error>> {
         let mut idt = ImportDirectoryTable::default();
 
         loop {
-            let entry = ImportDirectoryTableEntry::from_parser(cursor)?;
+            let entry = ImportDirectoryTableEntry::from_parser(reader)?;
 
             if entry.is_zeroed_out() {
                 break;
@@ -1244,13 +1252,13 @@ impl ImportLookupTableEntry {
     }
 
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
         is_32_bits: bool,
     ) -> Result<ImportLookupTableEntry, Box<dyn std::error::Error>> {
         let mut entry = ImportLookupTableEntry::new();
 
         if is_32_bits {
-            let data = cursor.read_u32::<LittleEndian>()?;
+            let data = reader.read_u32()?;
             entry.by_ordinal = (data & 0x80000000) > 0;
 
             if entry.by_ordinal {
@@ -1259,7 +1267,7 @@ impl ImportLookupTableEntry {
                 entry.hint_name_table_rva = (data & 0x7FFFFFF) as u32;
             }
         } else {
-            let data = cursor.read_u64::<LittleEndian>()?;
+            let data = reader.read_u64()?;
             entry.by_ordinal = (data & 0x8000000000000000) > 0;
 
             if entry.by_ordinal {
@@ -1304,13 +1312,13 @@ pub struct ImportLookupTable {
 
 impl ImportLookupTable {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
         is_32_bit: bool,
     ) -> Result<ImportLookupTable, Box<dyn std::error::Error>> {
         let mut ilt = ImportLookupTable::default();
 
         loop {
-            let entry = ImportLookupTableEntry::from_parser(cursor, is_32_bit)?;
+            let entry = ImportLookupTableEntry::from_parser(reader, is_32_bit)?;
 
             if entry.is_zeroed_out() {
                 break;
@@ -1355,16 +1363,16 @@ impl HintNameEntry {
     }
 
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<HintNameEntry, Box<dyn std::error::Error>> {
         let mut entry = HintNameEntry::new();
 
-        entry.hint = cursor.read_u16::<LittleEndian>()?;
+        entry.hint = reader.read_u16()?;
 
         let mut name_buffer: Vec<u8> = Vec::new();
 
         loop {
-            let c = cursor.read_u8()?;
+            let c = reader.read_u8()?;
 
             if c == 0x0 {
                 break;
@@ -1373,8 +1381,8 @@ impl HintNameEntry {
             name_buffer.push(c);
         }
 
-        if (cursor.position() % 2) != 0 {
-            cursor.read_u8()?;
+        if (reader.position() % 2) != 0 {
+            reader.read_u8()?;
             entry.pad = true;
         } else {
             entry.pad = false;
@@ -1399,12 +1407,12 @@ pub struct HintNameData {
 
 impl HintNameData {
     pub fn parse_dll_name(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let mut name_buffer = Vec::new();
 
         loop {
-            let c = cursor.read_u8()?;
+            let c = reader.read_u8()?;
 
             if c == 0x0 {
                 break;
@@ -1475,21 +1483,21 @@ pub struct ExportDirectoryTable {
 
 impl ExportDirectoryTable {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<ExportDirectoryTable, Box<dyn std::error::Error>> {
         let mut edt = ExportDirectoryTable::default();
 
-        edt.export_flags = cursor.read_u32::<LittleEndian>()?;
-        edt.time_date_stamp = cursor.read_u32::<LittleEndian>()?;
-        edt.major_version = cursor.read_u16::<LittleEndian>()?;
-        edt.minor_version = cursor.read_u16::<LittleEndian>()?;
-        edt.name_rva = cursor.read_u32::<LittleEndian>()?;
-        edt.ordinal_base = cursor.read_u32::<LittleEndian>()?;
-        edt.address_table_entries = cursor.read_u32::<LittleEndian>()?;
-        edt.number_of_name_pointers = cursor.read_u32::<LittleEndian>()?;
-        edt.export_address_table_rva = cursor.read_u32::<LittleEndian>()?;
-        edt.name_pointer_rva = cursor.read_u32::<LittleEndian>()?;
-        edt.ordinal_table_rva = cursor.read_u32::<LittleEndian>()?;
+        edt.export_flags = reader.read_u32()?;
+        edt.time_date_stamp = reader.read_u32()?;
+        edt.major_version = reader.read_u16()?;
+        edt.minor_version = reader.read_u16()?;
+        edt.name_rva = reader.read_u32()?;
+        edt.ordinal_base = reader.read_u32()?;
+        edt.address_table_entries = reader.read_u32()?;
+        edt.number_of_name_pointers = reader.read_u32()?;
+        edt.export_address_table_rva = reader.read_u32()?;
+        edt.name_pointer_rva = reader.read_u32()?;
+        edt.ordinal_table_rva = reader.read_u32()?;
 
         return Ok(edt);
     }
@@ -1531,12 +1539,12 @@ pub struct ExportAddressTableEntry {
 
 impl ExportAddressTableEntry {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<ExportAddressTableEntry, Box<dyn std::error::Error>> {
         let mut entry = ExportAddressTableEntry::default();
 
-        entry.export_rva = cursor.read_u32::<LittleEndian>()?;
-        entry.forwarder_rva = cursor.read_u32::<LittleEndian>()?;
+        entry.export_rva = reader.read_u32()?;
+        entry.forwarder_rva = reader.read_u32()?;
 
         return Ok(entry);
     }
@@ -1603,7 +1611,7 @@ impl ExportData {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, IntoStaticStr)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum DebugType {
-    Unknown = 0,               // An unknown value that is ignored by all tools.
+    Unknown = 0, // An unknown value that is ignored by all tools.
     Coff = 1, // The COFF debug information (line numbers, symbol table, and string table). This type of debug information is also pointed to by fields in the file headers.
     CodeView = 2, // The Visual C++ debug information.
     Fpo = 3, // The frame pointer omission (FPO) information. This information tells the debugger how to interpret nonstandard stack frames, which use the EBP register for a purpose other than as a frame pointer.
@@ -1670,18 +1678,18 @@ impl DebugDirectory {
     }
 
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<DebugDirectory, Box<dyn std::error::Error>> {
         let mut dd = DebugDirectory::new();
 
-        dd.characteristics = cursor.read_u32::<LittleEndian>()?;
-        dd.time_date_stamp = cursor.read_u32::<LittleEndian>()?;
-        dd.major_version = cursor.read_u16::<LittleEndian>()?;
-        dd.minor_version = cursor.read_u16::<LittleEndian>()?;
-        dd.debug_type = cursor.read_u32::<LittleEndian>()?;
-        dd.size_of_data = cursor.read_u32::<LittleEndian>()?;
-        dd.address_of_raw_data = cursor.read_u32::<LittleEndian>()?;
-        dd.pointer_to_raw_data = cursor.read_u32::<LittleEndian>()?;
+        dd.characteristics = reader.read_u32()?;
+        dd.time_date_stamp = reader.read_u32()?;
+        dd.major_version = reader.read_u16()?;
+        dd.minor_version = reader.read_u16()?;
+        dd.debug_type = reader.read_u32()?;
+        dd.size_of_data = reader.read_u32()?;
+        dd.address_of_raw_data = reader.read_u32()?;
+        dd.pointer_to_raw_data = reader.read_u32()?;
 
         return Ok(dd);
     }
@@ -1743,13 +1751,13 @@ pub struct X64ExcFunctionEntry {
 
 impl X64ExcFunctionEntry {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<X64ExcFunctionEntry, Box<dyn std::error::Error>> {
         let mut entry = X64ExcFunctionEntry::default();
 
-        entry.begin_address = cursor.read_u32::<LittleEndian>()?;
-        entry.end_address = cursor.read_u32::<LittleEndian>()?;
-        entry.unwind_information = cursor.read_u32::<LittleEndian>()?;
+        entry.begin_address = reader.read_u32()?;
+        entry.end_address = reader.read_u32()?;
+        entry.unwind_information = reader.read_u32()?;
 
         return Ok(entry);
     }
@@ -1806,12 +1814,12 @@ impl Default for ExcFunctionEntry {
 
 impl ExcFunctionEntry {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
         machine_type: MachineType,
     ) -> Result<ExcFunctionEntry, Box<dyn std::error::Error>> {
         match machine_type {
             MachineType::AMD64 | MachineType::I386 => Ok(ExcFunctionEntry::X64(
-                X64ExcFunctionEntry::from_parser(cursor)?,
+                X64ExcFunctionEntry::from_parser(reader)?,
             )),
             _ => Err("Cannot parse Exception Function Entry, unsupported platform".into()),
             /* TODO: implement other machine types */
@@ -1842,7 +1850,7 @@ pub struct ExceptionTable {
 
 impl ExceptionTable {
     pub fn from_parser(
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
         size: usize,
         machine_type: MachineType,
     ) -> Result<ExceptionTable, Box<dyn std::error::Error>> {
@@ -1851,7 +1859,7 @@ impl ExceptionTable {
         let mut parsed_sz = 0 as usize;
 
         while parsed_sz < size {
-            let entry = ExcFunctionEntry::from_parser(cursor, machine_type)?;
+            let entry = ExcFunctionEntry::from_parser(reader, machine_type)?;
             parsed_sz += entry.len();
             et.entries.push(entry);
         }
@@ -1958,22 +1966,22 @@ impl PE {
 
     pub fn parse_headers_and_sections(
         &mut self,
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let dos_header = DOSHeader::from_parser(cursor)?;
+        let dos_header = DOSHeader::from_parser(reader)?;
 
-        cursor.set_position(dos_header.e_lfanew as u64);
+        reader.set_position(dos_header.e_lfanew as usize)?;
 
-        let nt_header = NTHeader::from_parser(cursor)?;
+        let nt_header = NTHeader::from_parser(reader)?;
 
-        let optional_magic: u16 = cursor.read_u16::<LittleEndian>()?;
-        cursor.set_position(cursor.position() - 2);
+        let optional_magic: u16 = reader.read_u16()?;
+        reader.set_position(reader.position() - 2)?;
 
-        let start_of_optional_position = cursor.position();
+        let start_of_optional_position = reader.position();
 
         match optional_magic {
             PE_FORMAT_32_MAGIC => {
-                let optional_header: OptionalHeader32 = OptionalHeader32::from_parser(cursor)?;
+                let optional_header: OptionalHeader32 = OptionalHeader32::from_parser(reader)?;
 
                 self.header = PEHeader {
                     dos: dos_header,
@@ -1982,7 +1990,7 @@ impl PE {
                 };
             }
             PE_FORMAT_64_MAGIC => {
-                let optional_header: OptionalHeader64 = OptionalHeader64::from_parser(cursor)?;
+                let optional_header: OptionalHeader64 = OptionalHeader64::from_parser(reader)?;
 
                 self.header = PEHeader {
                     dos: dos_header,
@@ -1995,21 +2003,21 @@ impl PE {
             }
         }
 
-        let end_of_optional_position = cursor.position();
+        let end_of_optional_position = reader.position();
         let optional_size = end_of_optional_position - start_of_optional_position;
 
-        cursor
-            .set_position(cursor.position() + (self.get_size_of_optional_header() - optional_size));
+        reader
+            .set_position(reader.position() + (self.get_size_of_optional_header() as usize - optional_size))?;
 
         for _ in 0..self.get_number_of_sections() {
-            let section_header = SectionHeader::from_parser(cursor)?;
+            let section_header = SectionHeader::from_parser(reader)?;
 
-            let previous_position = cursor.position();
+            let previous_position = reader.position();
 
             let mut section_data: Vec<u8> = vec![0; section_header.data_size()];
 
-            cursor.set_position(section_header.ptr_to_raw_data as u64);
-            cursor.read_exact(&mut section_data)?;
+            reader.set_position(section_header.ptr_to_raw_data as usize)?;
+            reader.read_exact(&mut section_data)?;
 
             self.sections.insert(
                 section_header.name.clone(),
@@ -2019,7 +2027,7 @@ impl PE {
                 },
             );
 
-            cursor.set_position(previous_position);
+            reader.set_position(previous_position)?;
         }
 
         return Ok(());
@@ -2027,15 +2035,15 @@ impl PE {
 
     pub fn parse_import_data(
         &mut self,
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let import_table_idd = self.get_optional_header().get_import_table_idd();
         let itd_file_offset = self.convert_rva_to_file_offset(import_table_idd.virtual_address);
 
         if let Some(file_offset) = itd_file_offset {
-            cursor.set_position(file_offset);
+            reader.set_position(file_offset as usize)?;
 
-            let import_directory_table = ImportDirectoryTable::from_parser(cursor)?;
+            let import_directory_table = ImportDirectoryTable::from_parser(reader)?;
             let mut hint_name_table = HintNameTable::default();
 
             let mut import_lookup_tables = Vec::new();
@@ -2044,9 +2052,9 @@ impl PE {
                 let ilt_offset = self
                     .convert_rva_to_file_offset(idt.import_lookup_table_rva)
                     .expect("Cannot find file offset for Import Lookup Table");
-                cursor.set_position(ilt_offset);
+                reader.set_position(ilt_offset as usize)?;
 
-                let ilt = ImportLookupTable::from_parser(cursor, self.is_32_bits())?;
+                let ilt = ImportLookupTable::from_parser(reader, self.is_32_bits())?;
 
                 let mut hnd = HintNameData::default();
 
@@ -2054,9 +2062,9 @@ impl PE {
                     .convert_rva_to_file_offset(idt.name_rva)
                     .expect("Cannot find file offset_for_dll_name");
 
-                cursor.set_position(dll_name_offset);
+                reader.set_position(dll_name_offset as usize)?;
 
-                hnd.dll_name = HintNameData::parse_dll_name(cursor)?;
+                hnd.dll_name = HintNameData::parse_dll_name(reader)?;
 
                 for ilt_entry in ilt.entries.iter() {
                     if ilt_entry.by_ordinal {
@@ -2067,9 +2075,9 @@ impl PE {
                         .convert_rva_to_file_offset(ilt_entry.hint_name_table_rva)
                         .expect("Cannot find file offset for Hint/Name table entry");
 
-                    cursor.set_position(ilt_offset);
+                    reader.set_position(ilt_offset as usize)?;
 
-                    hnd.entries.push(HintNameEntry::from_parser(cursor)?);
+                    hnd.entries.push(HintNameEntry::from_parser(reader)?);
                 }
 
                 hint_name_table.entries.push(hnd);
@@ -2088,23 +2096,23 @@ impl PE {
     #[allow(dead_code)]
     pub fn parse_export_data(
         &mut self,
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let export_table_idd = self.get_optional_header().get_export_table_idd();
         let etd_offset = self.convert_rva_to_file_offset(export_table_idd.virtual_address);
 
         if let Some(file_offset) = etd_offset {
-            cursor.set_position(file_offset);
+            reader.set_position(file_offset as usize)?;
 
             let mut export_data = ExportData::default();
 
-            export_data.export_directory_table = ExportDirectoryTable::from_parser(cursor)?;
+            export_data.export_directory_table = ExportDirectoryTable::from_parser(reader)?;
 
             if let Some(eat_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.export_address_table_rva) {
-                cursor.set_position(eat_offset);
+                reader.set_position(eat_offset as usize)?;
 
                 for _ in 0..export_data.export_directory_table.address_table_entries as usize {
-                    let entry = ExportAddressTableEntry::from_parser(cursor)?;
+                    let entry = ExportAddressTableEntry::from_parser(reader)?;
 
                     export_data.export_address_table.push(entry);
                 }
@@ -2113,26 +2121,26 @@ impl PE {
             }
 
             if let Some(entp_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.name_pointer_rva) {
-                cursor.set_position(entp_offset);
+                reader.set_position(entp_offset as usize)?;
 
                 for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
-                    let rva = cursor.read_u32::<LittleEndian>()?;
+                    let rva = reader.read_u32()?;
 
-                    let old_position = cursor.position();
+                    let old_position = reader.position();
 
                     export_data.export_name_pointer_table.push(rva);
 
-                    cursor.set_position(old_position);
+                    reader.set_position(old_position)?;
                 }
             } else {
                 return Err("Cannot find the Export Name Pointer Table".into());
             }
 
             if let Some(eot_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.ordinal_table_rva) {
-                cursor.set_position(eot_offset);
+                reader.set_position(eot_offset as usize)?;
 
                 for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
-                    let ordinal = cursor.read_u16::<LittleEndian>()?;
+                    let ordinal = reader.read_u16()?;
 
                     export_data.export_ordinal_table.push(ordinal);
                 }
@@ -2141,13 +2149,13 @@ impl PE {
             }
 
             if let Some(ent_offset) = self.convert_rva_to_file_offset(export_data.export_directory_table.name_rva) {
-                cursor.set_position(ent_offset);
+                reader.set_position(ent_offset as usize)?;
 
                 for _ in 0..export_data.export_directory_table.number_of_name_pointers as usize {
                     let mut buffer = Vec::new();
 
                     loop {
-                        let c = cursor.read_u8()?;
+                        let c = reader.read_u8()?;
 
                         if c == b'\0' {
                             break;
@@ -2170,7 +2178,7 @@ impl PE {
 
     pub fn parse_debug_directory(
         &mut self,
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let debug_va = self.get_optional_header().get_debug_idd().virtual_address;
 
@@ -2178,9 +2186,9 @@ impl PE {
             let debug_fo = self.convert_rva_to_file_offset(debug_va);
 
             if let Some(dfo) = debug_fo {
-                cursor.set_position(dfo as u64);
+                reader.set_position(dfo as usize)?;
 
-                let debug_directory = DebugDirectory::from_parser(cursor)?;
+                let debug_directory = DebugDirectory::from_parser(reader)?;
 
                 self.debug_directory = Some(debug_directory);
             }
@@ -2191,7 +2199,7 @@ impl PE {
 
     pub fn parse_exception_table(
         &mut self,
-        cursor: &mut io::Cursor<&Vec<u8>>,
+        reader: &mut Reader,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let exception_va = self
             .get_optional_header()
@@ -2202,10 +2210,10 @@ impl PE {
             let exception_fo = self.convert_rva_to_file_offset(exception_va);
 
             if let Some(efo) = exception_fo {
-                cursor.set_position(efo as u64);
+                reader.set_position(efo as usize)?;
 
                 let exception_table = ExceptionTable::from_parser(
-                    cursor,
+                    reader,
                     self.get_optional_header().get_exception_table_idd().size as usize,
                     self.get_nt_header().coff_header.machine.into(),
                 )?;
@@ -2250,15 +2258,15 @@ pub fn parse_pe(file_path: &PathBuf) -> Result<PE, Box<dyn std::error::Error>> {
     }
 
     let file_bytes = std::fs::read(file_path).expect("Unable to open file");
-    let mut cursor = io::Cursor::new(&file_bytes);
+    let mut reader = Reader::LittleEndian(LEReader::new(&file_bytes));
 
     let mut pe: PE = PE::new();
 
-    pe.parse_headers_and_sections(&mut cursor)?;
-    pe.parse_import_data(&mut cursor)?;
-    pe.parse_export_data(&mut cursor)?;
-    pe.parse_debug_directory(&mut cursor)?;
-    pe.parse_exception_table(&mut cursor)?;
+    pe.parse_headers_and_sections(&mut reader)?;
+    pe.parse_import_data(&mut reader)?;
+    pe.parse_export_data(&mut reader)?;
+    pe.parse_debug_directory(&mut reader)?;
+    pe.parse_exception_table(&mut reader)?;
 
     return Ok(pe);
 }

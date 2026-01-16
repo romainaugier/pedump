@@ -8,16 +8,17 @@ use clap::Parser;
 
 pub mod pe;
 pub mod elf;
-pub mod dump;
-pub mod args;
-pub mod disasm;
-pub mod tui;
-pub mod format;
+mod dump;
+mod args;
+mod disasm;
+mod tui;
+mod format;
 pub mod exec;
-pub mod reader;
-pub mod demangle;
-pub mod x86_64;
-pub mod char_utils;
+mod reader;
+mod demangle;
+mod x86_64;
+mod char_utils;
+mod decompiler;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();

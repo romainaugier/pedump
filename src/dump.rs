@@ -148,10 +148,20 @@ impl Dump {
             child.print(indent_level + 1, indent_size);
             println!("");
         }
+
+        if self.children.len() == 0 {
+            println!("");
+        }
     }
 }
 
 pub fn dump_pe(pe: &PE, args: &Args) {
+    if args.pe_headers {
+        pe.get_dos_header().dump().print(0, args.padding_size);
+        pe.get_nt_header().dump().print(0, args.padding_size);
+        pe.get_optional_header().dump().print(0, args.padding_size);
+    }
+
     if args.pe_dos_header {
         pe.get_dos_header().dump().print(0, args.padding_size);
     }
@@ -172,7 +182,11 @@ pub fn dump_pe(pe: &PE, args: &Args) {
 
         for (_, section) in pe.sections.iter() {
             if sections_filter_regex.is_match(section.header.name.as_str()) {
-                section.dump(pe, args.disasm).print(0, args.padding_size);
+                if args.decompile {
+                    section.dump(pe, false, true).print(0, args.padding_size);
+                } else if args.disasm {
+                    section.dump(pe, true, false).print(0, args.padding_size);
+                }
             }
         }
     }

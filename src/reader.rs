@@ -47,6 +47,17 @@ impl<'a> LEReader<'a> {
     }
 
     #[inline]
+    pub fn read_exact(&mut self, v: &mut [u8]) -> ReaderResult<()> {
+        let n = v.len();
+
+        v.copy_from_slice(&self.data[self.position..self.position + n]);
+
+        self.position += n;
+
+        return Ok(());
+    }
+
+    #[inline]
     fn peek_bytes(&self, n: usize) -> ReaderResult<&[u8]> {
         if self.position + n > self.data.len() {
             return Err(ReaderError::UnexpectedEof);
@@ -192,6 +203,17 @@ impl<'a> BEReader<'a> {
     }
 
     #[inline]
+    pub fn read_exact(&mut self, v: &mut [u8]) -> ReaderResult<()> {
+        let n = v.len();
+
+        v.copy_from_slice(&self.data[self.position..self.position + n]);
+
+        self.position += n;
+
+        return Ok(());
+    }
+
+    #[inline]
     fn peek_bytes(&self, n: usize) -> ReaderResult<&[u8]> {
         if self.position + n > self.data.len() {
             return Err(ReaderError::UnexpectedEof);
@@ -329,6 +351,15 @@ impl<'a> Reader<'a> {
         match self {
             Reader::LittleEndian(r) => r.read_bytes(n),
             Reader::BigEndian(r) => r.read_bytes(n),
+        }
+    }
+
+    #[inline]
+    pub fn read_exact(&mut self, v: &mut [u8]) -> ReaderResult<()>
+    {
+        match self {
+            Reader::LittleEndian(r) => r.read_exact(v),
+            Reader::BigEndian(r) => r.read_exact(v),
         }
     }
 
